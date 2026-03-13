@@ -50,6 +50,13 @@ android {
 
 kapt {
     correctErrorTypes = true
+<<<<<<< codex/create-android-app-skeleton-with-compose-and-mvvm-fi3gre
+=======
+}
+
+kapt {
+    correctErrorTypes = true
+>>>>>>> master
 }
 
 dependencies {
