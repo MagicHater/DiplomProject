@@ -1,13 +1,17 @@
 package com.example.adaptivetestingbackend.entity
 
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonValue
 import jakarta.persistence.AttributeConverter
 import jakarta.persistence.Converter
 
-enum class RoleName(val dbValue: String) {
+enum class RoleName(@get:JsonValue val dbValue: String) {
     CANDIDATE("candidate"),
     CONTROLLER("controller");
 
     companion object {
+        @JvmStatic
+        @JsonCreator
         fun fromDbValue(value: String): RoleName = entries.firstOrNull { it.dbValue == value }
             ?: throw IllegalArgumentException("Unknown role name: $value")
     }
