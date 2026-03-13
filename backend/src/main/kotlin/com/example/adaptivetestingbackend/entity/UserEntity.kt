@@ -2,24 +2,34 @@ package com.example.adaptivetestingbackend.entity
 
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
+import jakarta.persistence.FetchType
 import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import java.time.OffsetDateTime
+import java.util.UUID
 
 @Entity
 @Table(name = "users")
 class UserEntity(
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
+    @Column(nullable = false)
+    val id: UUID = UUID.randomUUID(),
+
+    @Column(name = "full_name", nullable = false)
+    val fullName: String,
 
     @Column(nullable = false, unique = true)
     val email: String,
 
-    @Column(nullable = false)
+    @Column(name = "password_hash", nullable = false)
     val passwordHash: String,
 
-    @Column(nullable = false)
-    val role: String,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "role_id", nullable = false)
+    val role: RoleEntity,
+
+    @Column(name = "created_at", nullable = false)
+    val createdAt: OffsetDateTime = OffsetDateTime.now(),
 )
