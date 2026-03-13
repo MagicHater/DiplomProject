@@ -16,6 +16,7 @@ data class AuthUiState(
     val isLoading: Boolean = false,
     val authorizedRole: UserRole? = null,
     val isRegistered: Boolean = false,
+    val isSessionChecked: Boolean = false,
 )
 
 data class LoginUiState(
