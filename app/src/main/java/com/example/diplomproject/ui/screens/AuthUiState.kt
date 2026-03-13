@@ -2,6 +2,22 @@ package com.example.diplomproject.ui.screens
 
 import com.example.diplomproject.domain.model.UserRole
 
+data class AuthUiState(
+    val login: String = "",
+    val password: String = "",
+    val name: String = "",
+    val emailOrLogin: String = "",
+    val selectedRole: UserRole = UserRole.Candidate,
+    val loginError: String? = null,
+    val nameError: String? = null,
+    val emailOrLoginError: String? = null,
+    val passwordError: String? = null,
+    val authError: String? = null,
+    val isLoading: Boolean = false,
+    val authorizedRole: UserRole? = null,
+    val isRegistered: Boolean = false,
+)
+
 data class LoginUiState(
     val login: String = "",
     val password: String = "",
