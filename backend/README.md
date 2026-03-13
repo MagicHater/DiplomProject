@@ -66,3 +66,18 @@ psql "postgresql://postgres:postgres@localhost:5432/adaptive_testing" -c "\dt"
 psql "postgresql://postgres:postgres@localhost:5432/adaptive_testing" -c "SELECT * FROM flyway_schema_history ORDER BY installed_rank;"
 psql "postgresql://postgres:postgres@localhost:5432/adaptive_testing" -c "SELECT id, name FROM roles ORDER BY name;"
 ```
+
+
+## Swagger / OpenAPI
+
+После запуска backend Swagger UI доступен локально:
+
+- `http://localhost:8080/swagger-ui.html`
+- `http://localhost:8080/swagger-ui/index.html`
+
+OpenAPI JSON:
+
+- `http://localhost:8080/v3/api-docs`
+
+Для Swagger в security-конфигурации разрешены публичные эндпоинты:
+`/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html`.
