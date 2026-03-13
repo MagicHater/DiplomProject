@@ -9,7 +9,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
-import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MediaType
 import retrofit2.Retrofit
 import javax.inject.Singleton
 
@@ -27,7 +27,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideRetrofit(json: Json): Retrofit {
-        val contentType = "application/json".toMediaType()
+        val contentType = jsonContentType()
 
         return Retrofit.Builder()
             .baseUrl(BuildConfig.API_BASE_URL)
@@ -42,4 +42,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi = retrofit.create(AuthApi::class.java)
+
+    private fun jsonContentType(): MediaType =
+        requireNotNull(MediaType.parse("application/json"))
 }
