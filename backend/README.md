@@ -1,28 +1,38 @@
 # Backend module
 
-## Run locally
+## Profiles
 
-1. Ensure PostgreSQL is running and create DB `adaptive_testing`.
-2. Set environment variables for your local DB credentials:
+By default backend starts with `local` profile (in-memory H2), so `:backend:bootRun` works without PostgreSQL.
 
-```bash
-export DB_URL=jdbc:postgresql://localhost:5432/adaptive_testing
-export DB_USERNAME=postgres
-export DB_PASSWORD=your_real_password
-```
+- `local` (default): H2 in-memory DB, Flyway disabled.
+- `postgres`: PostgreSQL + Flyway migrations.
 
-On PowerShell:
-
-```powershell
-$env:DB_URL="jdbc:postgresql://localhost:5432/adaptive_testing"
-$env:DB_USERNAME="postgres"
-$env:DB_PASSWORD="your_real_password"
-```
-
-3. Start backend from project root:
+## Quick start (default local profile)
 
 ```bash
 ./gradlew :backend:bootRun
 ```
 
-If credentials are wrong, startup fails with PostgreSQL SQL state `28P01` (authentication failed).
+## Run with PostgreSQL profile
+
+Linux/macOS:
+
+```bash
+export SPRING_PROFILES_ACTIVE=postgres
+export DB_URL=jdbc:postgresql://localhost:5432/adaptive_testing
+export DB_USERNAME=postgres
+export DB_PASSWORD=your_real_password
+./gradlew :backend:bootRun
+```
+
+PowerShell:
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE="postgres"
+$env:DB_URL="jdbc:postgresql://localhost:5432/adaptive_testing"
+$env:DB_USERNAME="postgres"
+$env:DB_PASSWORD="your_real_password"
+./gradlew :backend:bootRun
+```
+
+If PostgreSQL credentials are wrong, startup fails with SQL state `28P01` (authentication failed).
