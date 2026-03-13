@@ -1,3 +1,4 @@
+// Canonical app build script (clean from merge-conflict markers)
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -25,7 +26,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
@@ -50,13 +51,6 @@ android {
 
 kapt {
     correctErrorTypes = true
-<<<<<<< codex/create-android-app-skeleton-with-compose-and-mvvm-fi3gre
-=======
-}
-
-kapt {
-    correctErrorTypes = true
->>>>>>> master
 }
 
 dependencies {
