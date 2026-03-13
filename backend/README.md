@@ -3,8 +3,7 @@
 ## Run backend with PostgreSQL locally
 
 1. Start PostgreSQL (example Docker command below).
-2. Make sure DB `adaptive_testing` exists.
-3. Run backend:
+2. Run backend:
 
 ```bash
 ./gradlew :backend:bootRun
@@ -20,6 +19,21 @@ You can override with env vars: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
 
 ## Start PostgreSQL in Docker
 
+### PowerShell (Windows)
+
+> В PowerShell перенос строк делается символом `` ` `` (backtick), а не `\`.
+
+```powershell
+docker run --name adaptive-testing-postgres `
+  -e POSTGRES_DB=adaptive_testing `
+  -e POSTGRES_USER=postgres `
+  -e POSTGRES_PASSWORD=postgres `
+  -p 5432:5432 `
+  -d postgres:16
+```
+
+### Bash (Linux/macOS/Git Bash)
+
 ```bash
 docker run --name adaptive-testing-postgres \
   -e POSTGRES_DB=adaptive_testing \
@@ -27,6 +41,18 @@ docker run --name adaptive-testing-postgres \
   -e POSTGRES_PASSWORD=postgres \
   -p 5432:5432 \
   -d postgres:16
+```
+
+### One-line command (works in any shell)
+
+```bash
+docker run --name adaptive-testing-postgres -e POSTGRES_DB=adaptive_testing -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:16
+```
+
+If container already exists:
+
+```bash
+docker rm -f adaptive-testing-postgres
 ```
 
 ## Verify Flyway migrations
