@@ -2,8 +2,13 @@
 
 ## Run backend with PostgreSQL locally
 
-1. Start PostgreSQL (example Docker command below).
-2. Run backend:
+Основная команда (поднимает PostgreSQL и запускает backend):
+
+```bash
+docker compose -f backend/docker-compose.yml up -d postgres && ./gradlew :backend:bootRun
+```
+
+Если PostgreSQL уже запущен, достаточно:
 
 ```bash
 ./gradlew :backend:bootRun

@@ -13,13 +13,25 @@ class AuthInterceptor @Inject constructor(
     private val sessionManager: SessionManager,
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
-        val token = runBlocking { sessionManager.tokenFlow.firstOrNull() }
-        val requestBuilder = chain.request().newBuilder()
-
-        if (!token.isNullOrBlank()) {
-            requestBuilder.addHeader("Authorization", "Bearer $token")
+        val originalRequest = chain.request()
+        if (originalRequest.shouldSkipAuthHeader()) {
+            return chain.proceed(originalRequest)
         }
 
-        return chain.proceed(requestBuilder.build())
+        val token = runBlocking { sessionManager.tokenFlow.firstOrNull() }
+        if (token.isNullOrBlank()) {
+            return chain.proceed(originalRequest)
+        }
+
+        val authorizedRequest = originalRequest.newBuilder()
+            .addHeader("Authorization", "Bearer $token")
+            .build()
+
+        return chain.proceed(authorizedRequest)
     }
+}
+
+private fun okhttp3.Request.shouldSkipAuthHeader(): Boolean {
+    val path = url.encodedPath
+    return path == "/auth/login" || path == "/auth/register"
 }
