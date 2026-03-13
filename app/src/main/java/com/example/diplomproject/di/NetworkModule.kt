@@ -1,5 +1,6 @@
 package com.example.diplomproject.di
 
+import com.example.diplomproject.BuildConfig
 import com.example.diplomproject.data.remote.AppApi
 import com.example.diplomproject.data.remote.auth.AuthApi
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
@@ -8,6 +9,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
 import retrofit2.Retrofit
 import javax.inject.Singleton
 
@@ -25,10 +27,10 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideRetrofit(json: Json): Retrofit {
-        val contentType = requireNotNull(okhttp3.MediaType.parse("application/json"))
+        val contentType = "application/json".toMediaType()
 
         return Retrofit.Builder()
-            .baseUrl("https://example.com/")
+            .baseUrl(BuildConfig.API_BASE_URL)
             .addConverterFactory(json.asConverterFactory(contentType))
             .build()
     }
