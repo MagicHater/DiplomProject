@@ -1,6 +1,6 @@
 package com.example.diplomproject.data.repository
 
-import com.example.diplomproject.data.local.AuthTokenDataStore
+import com.example.diplomproject.data.local.SessionManager
 import com.example.diplomproject.data.remote.auth.AuthApi
 import com.example.diplomproject.data.remote.auth.LoginRequestDto
 import com.example.diplomproject.data.remote.auth.MeResponseDto
@@ -8,22 +8,21 @@ import com.example.diplomproject.data.remote.auth.RegisterRequestDto
 import com.example.diplomproject.domain.model.UserRole
 import com.example.diplomproject.domain.repository.AuthRepository
 import com.example.diplomproject.domain.repository.AuthUser
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
 
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val authApi: AuthApi,
-    private val authTokenDataStore: AuthTokenDataStore,
+    private val sessionManager: SessionManager,
 ) : AuthRepository {
 
-    override val tokenFlow: Flow<String?> = authTokenDataStore.tokenFlow
+    override val tokenFlow: Flow<String?> = sessionManager.tokenFlow
 
     override suspend fun login(login: String, password: String): AuthUser {
         val response = authApi.login(LoginRequestDto(login = login, password = password))
-        authTokenDataStore.saveToken(response.token)
+        sessionManager.saveToken(response.token)
         return response.user.toDomain()
     }
 
@@ -41,18 +40,14 @@ class AuthRepositoryImpl @Inject constructor(
                 role = role.toApiRole(),
             ),
         )
-        authTokenDataStore.saveToken(response.token)
+        sessionManager.saveToken(response.token)
         return response.user.toDomain()
     }
 
-    override suspend fun me(): AuthUser {
-        val token = tokenFlow.firstOrNull().orEmpty()
-        check(token.isNotBlank()) { "JWT token not found in DataStore" }
-        return authApi.me(bearerToken = "Bearer $token").toDomain()
-    }
+    override suspend fun me(): AuthUser = authApi.me().toDomain()
 
     override suspend fun logout() {
-        authTokenDataStore.clearToken()
+        sessionManager.clearSession()
     }
 }
 

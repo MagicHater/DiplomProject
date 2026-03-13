@@ -9,6 +9,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -39,6 +40,45 @@ class AuthViewModel @Inject constructor(
         _uiState.update { it.copy(selectedRole = role) }
     }
 
+    fun checkSavedSession() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, authError = null) }
+
+            val token = authRepository.tokenFlow.firstOrNull()
+            if (token.isNullOrBlank()) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isSessionChecked = true,
+                        authorizedRole = null,
+                    )
+                }
+                return@launch
+            }
+
+            runCatching { authRepository.me() }
+                .onSuccess { user ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            isSessionChecked = true,
+                            authorizedRole = user.role,
+                        )
+                    }
+                }
+                .onFailure {
+                    authRepository.logout()
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            isSessionChecked = true,
+                            authorizedRole = null,
+                        )
+                    }
+                }
+        }
+    }
+
     fun login() {
         if (!validateLogin()) return
 
@@ -48,7 +88,13 @@ class AuthViewModel @Inject constructor(
             runCatching {
                 authRepository.login(login = state.login, password = state.password)
             }.onSuccess { user ->
-                _uiState.update { it.copy(isLoading = false, authorizedRole = user.role) }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        authorizedRole = user.role,
+                        isSessionChecked = true,
+                    )
+                }
             }.onFailure { error ->
                 _uiState.update {
                     it.copy(
@@ -82,6 +128,18 @@ class AuthViewModel @Inject constructor(
                         authError = error.message ?: "Ошибка регистрации",
                     )
                 }
+            }
+        }
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            authRepository.logout()
+            _uiState.update {
+                it.copy(
+                    authorizedRole = null,
+                    isSessionChecked = true,
+                )
             }
         }
     }

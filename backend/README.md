@@ -2,58 +2,59 @@
 
 ## Run backend with PostgreSQL locally
 
-1. Start PostgreSQL (example Docker command below).
-2. Run backend:
+Запускать из корня репозитория (`.../DiplomProject`).
+
+### Основная команда (Windows PowerShell)
+
+```powershell
+./backend/scripts/start-local-backend.ps1
+```
+
+### Основная команда (Linux/macOS/Git Bash)
 
 ```bash
+./backend/scripts/start-local-backend.sh
+```
+
+Скрипт делает 3 вещи:
+1. Удаляет legacy-контейнер `adaptive-testing-postgres` (если остался от старых команд).
+2. Поднимает PostgreSQL через `backend/docker-compose.yml`.
+3. Запускает backend с явными `DB_URL/DB_USERNAME/DB_PASSWORD`.
+
+> Почему у тебя падало раньше: в логе `SQL State 28P01` — это ошибка авторизации Postgres (неверный пароль для пользователя `postgres`).
+
+## Manual commands (if needed)
+
+### 1) Start PostgreSQL
+
+```bash
+docker compose -f backend/docker-compose.yml up -d postgres
+```
+
+### 2) Start backend with explicit DB env
+
+```bash
+DB_URL=jdbc:postgresql://localhost:5432/adaptive_testing DB_USERNAME=postgres DB_PASSWORD=postgres ./gradlew :backend:bootRun
+```
+
+PowerShell equivalent:
+
+```powershell
+$env:DB_URL = "jdbc:postgresql://localhost:5432/adaptive_testing"
+$env:DB_USERNAME = "postgres"
+$env:DB_PASSWORD = "postgres"
 ./gradlew :backend:bootRun
 ```
 
-By default, backend uses PostgreSQL from `application.yml`:
+## If port 5432 is busy
 
-- `jdbc:postgresql://localhost:5432/adaptive_testing`
-- user: `postgres`
-- password: `postgres`
-
-You can override with env vars: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
-
-## Start PostgreSQL in Docker
-
-### PowerShell (Windows)
-
-> В PowerShell перенос строк делается символом `` ` `` (backtick), а не `\`.
-
-```powershell
-docker run --name adaptive-testing-postgres `
-  -e POSTGRES_DB=adaptive_testing `
-  -e POSTGRES_USER=postgres `
-  -e POSTGRES_PASSWORD=postgres `
-  -p 5432:5432 `
-  -d postgres:16
-```
-
-### Bash (Linux/macOS/Git Bash)
+Проверь, не запущен ли другой Postgres, и останови его:
 
 ```bash
-docker run --name adaptive-testing-postgres \
-  -e POSTGRES_DB=adaptive_testing \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -p 5432:5432 \
-  -d postgres:16
+docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Ports}}"
 ```
 
-### One-line command (works in any shell)
-
-```bash
-docker run --name adaptive-testing-postgres -e POSTGRES_DB=adaptive_testing -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:16
-```
-
-If container already exists:
-
-```bash
-docker rm -f adaptive-testing-postgres
-```
+Если видишь лишний контейнер на `0.0.0.0:5432->5432/tcp`, останови/удали его.
 
 ## Verify Flyway migrations
 
