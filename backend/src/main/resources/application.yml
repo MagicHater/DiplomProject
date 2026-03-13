@@ -2,9 +2,9 @@ spring:
   application:
     name: adaptive-testing-backend
   datasource:
-    url: jdbc:postgresql://localhost:5432/adaptive_testing
-    username: postgres
-    password: postgres
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/adaptive_testing}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -20,7 +20,7 @@ spring:
     default-property-inclusion: non_null
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 management:
   endpoints:
@@ -30,5 +30,5 @@ management:
 
 security:
   jwt:
-    secret: "change-this-secret-key-at-least-32-bytes"
-    expiration-minutes: 60
+    secret: ${JWT_SECRET:change-this-secret-key-at-least-32-bytes}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
