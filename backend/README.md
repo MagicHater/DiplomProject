@@ -16,7 +16,7 @@
 ./backend/scripts/start-local-backend.sh
 ```
 
-Эти скрипты делают **полный reset локальной Postgres-среды** (для dev), чтобы убрать ошибку `SQL State 28P01`:
+Эти скрипты делают **полный reset локальной Postgres-среды** (для dev), чтобы убрать ошибку `SQL State 28P01` (или подключение не к тому инстансу Postgres на 5432):
 1. Останавливают compose-стек.
 2. Удаляют volume (сбрасывают старые креды/данные).
 3. Поднимают новый Postgres с `postgres/postgres`.
@@ -24,9 +24,13 @@
 
 > Важно: reset удаляет локальные данные в Postgres volume.
 
+### Почему порт 5433
+
+Мы специально используем `localhost:5433`, чтобы не попасть в локально установленный Postgres на `5432` и гарантированно ходить именно в контейнер Docker.
+
 ## Why it failed before
 
-Ошибка `SQL State 28P01` означает, что пароль пользователя `postgres` в уже существующей БД не совпадал с тем, что backend пытается использовать. У Postgres пароль задаётся при первой инициализации volume, потом простая смена env уже не применится.
+Ошибка `SQL State 28P01` (или подключение не к тому инстансу Postgres на 5432) означает, что пароль пользователя `postgres` в уже существующей БД не совпадал с тем, что backend пытается использовать. У Postgres пароль задаётся при первой инициализации volume, потом простая смена env уже не применится.
 
 ## Manual commands (if needed)
 
@@ -40,25 +44,25 @@ docker compose -f backend/docker-compose.yml up -d postgres
 ### 2) Start backend with explicit DB env
 
 ```bash
-DB_URL=jdbc:postgresql://localhost:5432/adaptive_testing DB_USERNAME=postgres DB_PASSWORD=postgres ./gradlew :backend:bootRun
+DB_URL=jdbc:postgresql://localhost:5433/adaptive_testing DB_USERNAME=postgres DB_PASSWORD=postgres ./gradlew :backend:bootRun
 ```
 
 PowerShell equivalent:
 
 ```powershell
-$env:DB_URL = "jdbc:postgresql://localhost:5432/adaptive_testing"
+$env:DB_URL = "jdbc:postgresql://localhost:5433/adaptive_testing"
 $env:DB_USERNAME = "postgres"
 $env:DB_PASSWORD = "postgres"
 ./gradlew :backend:bootRun
 ```
 
-## If port 5432 is busy
+## If port 5433 is busy
 
 ```bash
 docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Ports}}"
 ```
 
-Если есть другой контейнер на `5432`, останови его.
+Если есть другой контейнер на `5433`, останови его.
 
 ## Swagger / OpenAPI (without PostgreSQL)
 
