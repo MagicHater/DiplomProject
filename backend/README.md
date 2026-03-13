@@ -1,93 +1,75 @@
 # Backend module
 
-## Run backend with PostgreSQL locally
+## Run backend with PostgreSQL locally (WORKING RESET FLOW)
 
-1. Start PostgreSQL (example Docker command below).
-2. Run backend:
+Запускать из корня репозитория (`.../DiplomProject`).
+
+### Основная команда (Windows PowerShell)
+
+```powershell
+./backend/scripts/start-local-backend.ps1
+```
+
+### Основная команда (Linux/macOS/Git Bash)
 
 ```bash
+./backend/scripts/start-local-backend.sh
+```
+
+Эти скрипты делают **полный reset локальной Postgres-среды** (для dev), чтобы убрать ошибку `SQL State 28P01` (или подключение не к тому инстансу Postgres на 5432):
+1. Останавливают compose-стек.
+2. Удаляют volume (сбрасывают старые креды/данные).
+3. Поднимают новый Postgres с `postgres/postgres`.
+4. Запускают backend с явными `DB_URL/DB_USERNAME/DB_PASSWORD`.
+
+> Важно: reset удаляет локальные данные в Postgres volume.
+
+### Почему порт 5433
+
+Мы специально используем `localhost:5433`, чтобы не попасть в локально установленный Postgres на `5432` и гарантированно ходить именно в контейнер Docker.
+
+## Why it failed before
+
+Ошибка `SQL State 28P01` (или подключение не к тому инстансу Postgres на 5432) означает, что пароль пользователя `postgres` в уже существующей БД не совпадал с тем, что backend пытается использовать. У Postgres пароль задаётся при первой инициализации volume, потом простая смена env уже не применится.
+
+## Manual commands (if needed)
+
+### 1) Hard reset Postgres (compose + volume)
+
+```bash
+docker compose -f backend/docker-compose.yml down -v --remove-orphans
+docker compose -f backend/docker-compose.yml up -d postgres
+```
+
+### 2) Start backend with explicit DB env
+
+```bash
+DB_URL=jdbc:postgresql://localhost:5433/adaptive_testing DB_USERNAME=postgres DB_PASSWORD=postgres ./gradlew :backend:bootRun
+```
+
+PowerShell equivalent:
+
+```powershell
+$env:DB_URL = "jdbc:postgresql://localhost:5433/adaptive_testing"
+$env:DB_USERNAME = "postgres"
+$env:DB_PASSWORD = "postgres"
 ./gradlew :backend:bootRun
 ```
 
-By default, backend uses PostgreSQL from `application.yml`:
-
-- `jdbc:postgresql://localhost:5432/adaptive_testing`
-- user: `postgres`
-- password: `postgres`
-
-You can override with env vars: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
-
-## Start PostgreSQL in Docker
-
-### PowerShell (Windows)
-
-> В PowerShell перенос строк делается символом `` ` `` (backtick), а не `\`.
-
-```powershell
-docker run --name adaptive-testing-postgres `
-  -e POSTGRES_DB=adaptive_testing `
-  -e POSTGRES_USER=postgres `
-  -e POSTGRES_PASSWORD=postgres `
-  -p 5432:5432 `
-  -d postgres:16
-```
-
-### Bash (Linux/macOS/Git Bash)
+## If port 5433 is busy
 
 ```bash
-docker run --name adaptive-testing-postgres \
-  -e POSTGRES_DB=adaptive_testing \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -p 5432:5432 \
-  -d postgres:16
+docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Ports}}"
 ```
 
-### One-line command (works in any shell)
+Если есть другой контейнер на `5433`, останови его.
 
-```bash
-docker run --name adaptive-testing-postgres -e POSTGRES_DB=adaptive_testing -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:16
-```
-
-If container already exists:
-
-```bash
-docker rm -f adaptive-testing-postgres
-```
-
-## Verify Flyway migrations
-
-When backend starts, Flyway runs automatically and creates tables from `db/migration/V1__init.sql`.
-
-Check in DB:
-
-```bash
-psql "postgresql://postgres:postgres@localhost:5432/adaptive_testing" -c "\dt"
-psql "postgresql://postgres:postgres@localhost:5432/adaptive_testing" -c "SELECT * FROM flyway_schema_history ORDER BY installed_rank;"
-psql "postgresql://postgres:postgres@localhost:5432/adaptive_testing" -c "SELECT id, name FROM roles ORDER BY name;"
-```
-
-
-## Swagger / OpenAPI
-
-Для локальной проверки Swagger без внешней PostgreSQL запустите backend с профилем `swagger`
-(используется in-memory H2, без подключения к внешней БД):
+## Swagger / OpenAPI (without PostgreSQL)
 
 ```bash
 ./gradlew :backend:bootRun --args='--spring.profiles.active=swagger'
 ```
 
-Swagger UI доступен локально:
-
 - `http://localhost:8080/swagger-ui.html`
 - `http://localhost:8080/swagger-ui/index.html`
-
-OpenAPI JSON:
-
 - `http://localhost:8080/v3/api-docs`
-
-Если запускаете без профиля `swagger`, убедитесь что корректно заданы
-`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, иначе приложение не поднимется из-за ошибки подключения к PostgreSQL.
-
-Для Swagger в security-конфигурации разрешены публичные эндпоинты:
-`/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html`.

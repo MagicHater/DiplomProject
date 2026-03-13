@@ -75,6 +75,7 @@ dependencies {
     kapt(libs.dagger.hilt.compiler)
 
     implementation(libs.retrofit.core)
+    implementation(libs.okhttp.core)
     implementation(libs.retrofit.kotlinx.serialization.converter)
     implementation(libs.kotlinx.serialization.json)
 
