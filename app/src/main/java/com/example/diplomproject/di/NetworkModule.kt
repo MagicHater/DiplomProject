@@ -1,5 +1,7 @@
 package com.example.diplomproject.di
 
+import com.example.diplomproject.data.remote.AppApi
+import com.example.diplomproject.data.remote.auth.AuthApi
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
 import dagger.Provides
@@ -33,7 +35,9 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideAppApi(retrofit: Retrofit): com.example.diplomproject.data.remote.AppApi {
-        return retrofit.create(com.example.diplomproject.data.remote.AppApi::class.java)
-    }
+    fun provideAppApi(retrofit: Retrofit): AppApi = retrofit.create(AppApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAuthApi(retrofit: Retrofit): AuthApi = retrofit.create(AuthApi::class.java)
 }
