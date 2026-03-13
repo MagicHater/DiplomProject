@@ -5,6 +5,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.diplomproject.domain.model.UserRole
 import com.example.diplomproject.ui.screens.CandidateDetailsScreen
 import com.example.diplomproject.ui.screens.CandidateHomeScreen
 import com.example.diplomproject.ui.screens.CandidateListScreen
@@ -26,11 +27,13 @@ fun AppNavHost(
         composable(AppDestination.Login.route) {
             LoginScreen(
                 onRegisterClick = { navController.navigate(AppDestination.Register.route) },
-                onCandidateHomeClick = {
-                    navController.navigate(AppDestination.CandidateHome.route)
-                },
-                onControllerHomeClick = {
-                    navController.navigate(AppDestination.ControllerHome.route)
+                onLoginSuccess = { role ->
+                    val destination = if (role == UserRole.Controller) {
+                        AppDestination.ControllerHome.route
+                    } else {
+                        AppDestination.CandidateHome.route
+                    }
+                    navController.navigate(destination)
                 },
             )
         }
