@@ -71,7 +71,7 @@ psql "postgresql://postgres:postgres@localhost:5432/adaptive_testing" -c "SELECT
 ## Swagger / OpenAPI
 
 Для локальной проверки Swagger без внешней PostgreSQL запустите backend с профилем `swagger`
-(используется in-memory H2 + Flyway миграции):
+(используется in-memory H2, без подключения к внешней БД):
 
 ```bash
 ./gradlew :backend:bootRun --args='--spring.profiles.active=swagger'
