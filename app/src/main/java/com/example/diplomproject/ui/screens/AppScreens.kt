@@ -34,30 +34,6 @@ private fun ScreenStub(
 }
 
 @Composable
-fun LoginScreen(
-    onRegisterClick: () -> Unit,
-    onCandidateHomeClick: () -> Unit,
-    onControllerHomeClick: () -> Unit,
-) {
-    ScreenStub(
-        title = "LoginScreen",
-        actions = listOf(
-            "Перейти к Register" to onRegisterClick,
-            "Войти как Candidate" to onCandidateHomeClick,
-            "Войти как Controller" to onControllerHomeClick,
-        ),
-    )
-}
-
-@Composable
-fun RegisterScreen(onLoginClick: () -> Unit) {
-    ScreenStub(
-        title = "RegisterScreen",
-        actions = listOf("Назад к Login" to onLoginClick),
-    )
-}
-
-@Composable
 fun CandidateHomeScreen(
     onStartTestClick: () -> Unit,
     onResultClick: () -> Unit,
