@@ -1,11 +1,16 @@
 package com.example.diplomproject.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.collectAsState
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.diplomproject.domain.model.UserRole
+import com.example.diplomproject.ui.screens.AuthViewModel
 import com.example.diplomproject.ui.screens.CandidateDetailsScreen
 import com.example.diplomproject.ui.screens.CandidateHomeScreen
 import com.example.diplomproject.ui.screens.CandidateListScreen
@@ -19,7 +24,30 @@ import com.example.diplomproject.ui.screens.TestScreen
 @Composable
 fun AppNavHost(
     navController: NavHostController = rememberNavController(),
+    authViewModel: AuthViewModel = hiltViewModel(),
 ) {
+    val authState by authViewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        authViewModel.checkSavedSession()
+    }
+
+    LaunchedEffect(authState.authorizedRole, authState.isSessionChecked) {
+        if (!authState.isSessionChecked) return@LaunchedEffect
+
+        val destination = when (authState.authorizedRole) {
+            UserRole.Controller -> AppDestination.ControllerHome.route
+            UserRole.Candidate -> AppDestination.CandidateHome.route
+            null -> AppDestination.Login.route
+        }
+
+        navController.navigate(destination) {
+            popUpTo(navController.graph.startDestinationId) { inclusive = true }
+            launchSingleTop = true
+        }
+        authViewModel.consumeNavigationState()
+    }
+
     NavHost(
         navController = navController,
         startDestination = AppDestination.Login.route,
@@ -27,19 +55,26 @@ fun AppNavHost(
         composable(AppDestination.Login.route) {
             LoginScreen(
                 onRegisterClick = { navController.navigate(AppDestination.Register.route) },
+                viewModel = authViewModel,
                 onLoginSuccess = { role ->
                     val destination = if (role == UserRole.Controller) {
                         AppDestination.ControllerHome.route
                     } else {
                         AppDestination.CandidateHome.route
                     }
-                    navController.navigate(destination)
+                    navController.navigate(destination) {
+                        popUpTo(AppDestination.Login.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
                 },
             )
         }
 
         composable(AppDestination.Register.route) {
-            RegisterScreen(onLoginClick = { navController.navigate(AppDestination.Login.route) })
+            RegisterScreen(
+                onLoginClick = { navController.navigate(AppDestination.Login.route) },
+                viewModel = authViewModel,
+            )
         }
 
         composable(AppDestination.CandidateHome.route) {
@@ -47,7 +82,12 @@ fun AppNavHost(
                 onStartTestClick = { navController.navigate(AppDestination.Test.route) },
                 onResultClick = { navController.navigate(AppDestination.Result.route) },
                 onHistoryClick = { navController.navigate(AppDestination.History.route) },
-                onLogoutClick = { navController.navigate(AppDestination.Login.route) },
+                onLogoutClick = {
+                    authViewModel.logout()
+                    navController.navigate(AppDestination.Login.route) {
+                        popUpTo(AppDestination.CandidateHome.route) { inclusive = true }
+                    }
+                },
             )
         }
 
@@ -55,7 +95,12 @@ fun AppNavHost(
             ControllerHomeScreen(
                 onCandidateListClick = { navController.navigate(AppDestination.CandidateList.route) },
                 onHistoryClick = { navController.navigate(AppDestination.History.route) },
-                onLogoutClick = { navController.navigate(AppDestination.Login.route) },
+                onLogoutClick = {
+                    authViewModel.logout()
+                    navController.navigate(AppDestination.Login.route) {
+                        popUpTo(AppDestination.ControllerHome.route) { inclusive = true }
+                    }
+                },
             )
         }
 

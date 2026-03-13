@@ -2,7 +2,6 @@ package com.example.diplomproject.data.remote.auth
 
 import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.Header
 import retrofit2.http.POST
 
 interface AuthApi {
@@ -13,5 +12,5 @@ interface AuthApi {
     suspend fun register(@Body request: RegisterRequestDto): AuthResponseDto
 
     @GET("auth/me")
-    suspend fun me(@Header("Authorization") bearerToken: String): MeResponseDto
+    suspend fun me(): MeResponseDto
 }
