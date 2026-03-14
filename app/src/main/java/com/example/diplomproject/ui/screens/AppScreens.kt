@@ -2,11 +2,15 @@ package com.example.diplomproject.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,20 +39,54 @@ private fun ScreenStub(
 
 @Composable
 fun CandidateHomeScreen(
+    uiState: CandidateHomeUiState,
     onStartTestClick: () -> Unit,
     onResultClick: () -> Unit,
     onHistoryClick: () -> Unit,
     onLogoutClick: () -> Unit,
 ) {
-    ScreenStub(
-        title = "Кабинет кандидата",
-        actions = listOf(
-            "Открыть Test" to onStartTestClick,
-            "Открыть Result" to onResultClick,
-            "Открыть History" to onHistoryClick,
-            "Выйти" to onLogoutClick,
-        ),
-    )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(text = "Кабинет кандидата", style = MaterialTheme.typography.headlineMedium)
+        Text(
+            text = "Пройдите адаптивный тест. После старта вы сразу получите первый вопрос.",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+
+        uiState.errorMessage?.let {
+            Text(text = it, color = MaterialTheme.colorScheme.error)
+        }
+
+        Button(
+            onClick = onStartTestClick,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !uiState.isLoading,
+        ) {
+            if (uiState.isLoading) {
+                CircularProgressIndicator()
+            } else {
+                Text("Начать тест")
+            }
+        }
+
+        Button(onClick = onHistoryClick, modifier = Modifier.fillMaxWidth()) {
+            Text("История результатов")
+        }
+
+        Button(onClick = onResultClick, modifier = Modifier.fillMaxWidth()) {
+            Text("Текущий результат (заглушка)")
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+        TextButton(onClick = onLogoutClick, modifier = Modifier.fillMaxWidth()) {
+            Text("Выйти")
+        }
+    }
 }
 
 @Composable
@@ -69,11 +107,12 @@ fun ControllerHomeScreen(
 
 @Composable
 fun TestScreen(
+    sessionId: String,
     onFinishTestClick: () -> Unit,
     onBackToHomeClick: () -> Unit,
 ) {
     ScreenStub(
-        title = "TestScreen",
+        title = "TestScreen\nSession: $sessionId",
         actions = listOf(
             "Завершить тест" to onFinishTestClick,
             "Назад в CandidateHome" to onBackToHomeClick,
