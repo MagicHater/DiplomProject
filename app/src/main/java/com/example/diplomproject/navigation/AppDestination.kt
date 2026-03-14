@@ -10,7 +10,13 @@ sealed class AppDestination(val route: String) {
 
         fun createRoute(sessionId: String): String = "test/$sessionId"
     }
-    data object Result : AppDestination("result")
+
+    data object Result : AppDestination("result/{sessionId}") {
+        const val sessionIdArg = "sessionId"
+
+        fun createRoute(sessionId: String): String = "result/$sessionId"
+    }
+
     data object History : AppDestination("history")
     data object CandidateList : AppDestination("candidate_list")
     data object CandidateDetails : AppDestination("candidate_details")

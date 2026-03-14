@@ -1,5 +1,6 @@
 package com.example.diplomproject.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.diplomproject.domain.model.FinishedSessionResult
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 
 @Composable
 private fun ScreenStub(
@@ -195,7 +199,8 @@ fun TestQuestionScreen(
 
 @Composable
 fun ResultScreen(
-    result: com.example.diplomproject.domain.model.FinishedSessionResult?,
+    uiState: ResultUiState,
+    onRetryClick: () -> Unit,
     onHistoryClick: () -> Unit,
     onBackToCandidateHomeClick: () -> Unit,
 ) {
@@ -207,15 +212,27 @@ fun ResultScreen(
     ) {
         Text(text = "Результат", style = MaterialTheme.typography.headlineMedium)
 
-        if (result == null) {
-            Text(text = "Нет данных по завершённому тесту.")
-        } else {
-            Text(text = result.overallSummary, style = MaterialTheme.typography.bodyMedium)
-            Text(text = "Внимание: ${result.scores.attention}")
-            Text(text = "Стрессоустойчивость: ${result.scores.stressResistance}")
-            Text(text = "Ответственность: ${result.scores.responsibility}")
-            Text(text = "Адаптивность: ${result.scores.adaptability}")
-            Text(text = "Скорость/точность решений: ${result.scores.decisionSpeedAccuracy}")
+        when {
+            uiState.isLoading -> {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            uiState.errorMessage != null -> {
+                Text(text = uiState.errorMessage, color = MaterialTheme.colorScheme.error)
+                Button(onClick = onRetryClick) {
+                    Text("Повторить")
+                }
+            }
+
+            uiState.emptyMessage != null -> {
+                Text(text = uiState.emptyMessage, style = MaterialTheme.typography.bodyMedium)
+            }
+
+            uiState.result != null -> {
+                ResultContent(result = uiState.result, isChartPlaceholderVisible = uiState.isChartPlaceholderVisible)
+            }
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -229,8 +246,50 @@ fun ResultScreen(
 }
 
 @Composable
+private fun ResultContent(
+    result: FinishedSessionResult,
+    isChartPlaceholderVisible: Boolean,
+) {
+    Text(
+        text = "Дата/время: ${result.completedAt.formatIsoDateTime()}",
+        style = MaterialTheme.typography.bodySmall,
+    )
+
+    if (isChartPlaceholderVisible) {
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Radar chart будет добавлен на этом месте в следующих итерациях.",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(12.dp),
+            )
+        }
+    }
+
+    val scales = listOf(
+        ScaleItemUi("Внимание", result.scores.attention, result.interpretations.attention),
+        ScaleItemUi("Стрессоустойчивость", result.scores.stressResistance, result.interpretations.stressResistance),
+        ScaleItemUi("Ответственность", result.scores.responsibility, result.interpretations.responsibility),
+        ScaleItemUi("Адаптивность", result.scores.adaptability, result.interpretations.adaptability),
+        ScaleItemUi("Скорость/точность решений", result.scores.decisionSpeedAccuracy, result.interpretations.decisionSpeedAccuracy),
+    )
+
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        item {
+            Text(text = "Summary", style = MaterialTheme.typography.titleMedium)
+            Text(text = result.overallSummary, style = MaterialTheme.typography.bodyMedium)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = "Шкалы", style = MaterialTheme.typography.titleMedium)
+        }
+        items(scales) { scale ->
+            ScaleItemCard(item = scale)
+        }
+    }
+}
+
+@Composable
 fun HistoryScreen(
     uiState: HistoryUiState,
+    onResultClick: (String) -> Unit,
     onBackToHomeClick: () -> Unit,
     onRetryClick: () -> Unit,
 ) {
@@ -261,22 +320,21 @@ fun HistoryScreen(
             else -> {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(uiState.items, key = { it.sessionId }) { item ->
-                        Card(modifier = Modifier.fillMaxWidth()) {
+                        Card(modifier = Modifier.fillMaxWidth().clickable { onResultClick(item.sessionId) }) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text(
                                     text = item.summary,
                                     style = MaterialTheme.typography.titleMedium,
                                 )
                                 Text(
-                                    text = "Завершено: ${item.completedAt}",
+                                    text = "Завершено: ${item.completedAt.formatIsoDateTime()}",
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Внимание ${item.scores.attention}, Стресс ${item.scores.stressResistance}, " +
-                                        "Ответственность ${item.scores.responsibility}, Адаптивность ${item.scores.adaptability}, " +
-                                        "Решения ${item.scores.decisionSpeedAccuracy}",
+                                    text = "Открыть полный результат",
                                     style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
                                 )
                             }
                         }
@@ -291,6 +349,10 @@ fun HistoryScreen(
         }
     }
 }
+
+private fun String.formatIsoDateTime(): String = runCatching {
+    OffsetDateTime.parse(this).format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))
+}.getOrDefault(this)
 
 @Composable
 fun CandidateListScreen(
