@@ -11,14 +11,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.diplomproject.domain.model.UserRole
 import com.example.diplomproject.ui.screens.AuthViewModel
 import com.example.diplomproject.ui.screens.AppSessionState
 import com.example.diplomproject.ui.screens.CandidateDetailsScreen
 import com.example.diplomproject.ui.screens.CandidateHomeScreen
+import com.example.diplomproject.ui.screens.CandidateHomeViewModel
 import com.example.diplomproject.ui.screens.CandidateListScreen
 import com.example.diplomproject.ui.screens.ControllerHomeScreen
 import com.example.diplomproject.ui.screens.HistoryScreen
@@ -84,8 +87,18 @@ fun AppNavHost(
         }
 
         composable(AppDestination.CandidateHome.route) {
+            val candidateHomeViewModel: CandidateHomeViewModel = hiltViewModel()
+            val candidateHomeState by candidateHomeViewModel.uiState.collectAsState()
+
+            LaunchedEffect(candidateHomeState.startedSession?.sessionId) {
+                val startedSession = candidateHomeState.startedSession ?: return@LaunchedEffect
+                navController.navigate(AppDestination.Test.createRoute(startedSession.sessionId))
+                candidateHomeViewModel.consumeNavigation()
+            }
+
             CandidateHomeScreen(
-                onStartTestClick = { navController.navigate(AppDestination.Test.route) },
+                uiState = candidateHomeState,
+                onStartTestClick = { candidateHomeViewModel.startTest() },
                 onResultClick = { navController.navigate(AppDestination.Result.route) },
                 onHistoryClick = { navController.navigate(AppDestination.History.route) },
                 onLogoutClick = {
@@ -104,8 +117,13 @@ fun AppNavHost(
             )
         }
 
-        composable(AppDestination.Test.route) {
+        composable(
+            route = AppDestination.Test.route,
+            arguments = listOf(navArgument(AppDestination.Test.sessionIdArg) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getString(AppDestination.Test.sessionIdArg).orEmpty()
             TestScreen(
+                sessionId = sessionId,
                 onFinishTestClick = { navController.navigate(AppDestination.Result.route) },
                 onBackToHomeClick = { navController.navigate(AppDestination.CandidateHome.route) },
             )
