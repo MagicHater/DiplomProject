@@ -41,7 +41,7 @@ fun CandidateHomeScreen(
     onLogoutClick: () -> Unit,
 ) {
     ScreenStub(
-        title = "CandidateHomeScreen",
+        title = "Кабинет кандидата",
         actions = listOf(
             "Открыть Test" to onStartTestClick,
             "Открыть Result" to onResultClick,
@@ -58,7 +58,7 @@ fun ControllerHomeScreen(
     onLogoutClick: () -> Unit,
 ) {
     ScreenStub(
-        title = "ControllerHomeScreen",
+        title = "Кабинет контроллера",
         actions = listOf(
             "Открыть CandidateList" to onCandidateListClick,
             "Открыть History" to onHistoryClick,
@@ -97,15 +97,11 @@ fun ResultScreen(
 
 @Composable
 fun HistoryScreen(
-    onCandidateHomeClick: () -> Unit,
-    onControllerHomeClick: () -> Unit,
+    onBackToHomeClick: () -> Unit,
 ) {
     ScreenStub(
         title = "HistoryScreen",
-        actions = listOf(
-            "К CandidateHome" to onCandidateHomeClick,
-            "К ControllerHome" to onControllerHomeClick,
-        ),
+        actions = listOf("Назад в домашний кабинет" to onBackToHomeClick),
     )
 }
 

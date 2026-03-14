@@ -14,10 +14,17 @@ data class AuthUiState(
     val passwordError: String? = null,
     val authError: String? = null,
     val isLoading: Boolean = false,
-    val authorizedRole: UserRole? = null,
     val isRegistered: Boolean = false,
-    val isSessionChecked: Boolean = false,
+    val appSessionState: AppSessionState = AppSessionState.Initializing,
 )
+
+sealed interface AppSessionState {
+    data object Initializing : AppSessionState
+
+    data object Unauthenticated : AppSessionState
+
+    data class Authenticated(val role: UserRole) : AppSessionState
+}
 
 data class LoginUiState(
     val login: String = "",

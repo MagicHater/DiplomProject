@@ -42,15 +42,20 @@ class AuthViewModel @Inject constructor(
 
     fun checkSavedSession() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, authError = null) }
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    authError = null,
+                    appSessionState = AppSessionState.Initializing,
+                )
+            }
 
             val token = authRepository.tokenFlow.firstOrNull()
             if (token.isNullOrBlank()) {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        isSessionChecked = true,
-                        authorizedRole = null,
+                        appSessionState = AppSessionState.Unauthenticated,
                     )
                 }
                 return@launch
@@ -61,8 +66,7 @@ class AuthViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            isSessionChecked = true,
-                            authorizedRole = user.role,
+                            appSessionState = AppSessionState.Authenticated(user.role),
                         )
                     }
                 }
@@ -71,8 +75,8 @@ class AuthViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            isSessionChecked = true,
-                            authorizedRole = null,
+                            appSessionState = AppSessionState.Unauthenticated,
+                            authError = "Сессия истекла. Войдите снова.",
                         )
                     }
                 }
@@ -91,8 +95,7 @@ class AuthViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        authorizedRole = user.role,
-                        isSessionChecked = true,
+                        appSessionState = AppSessionState.Authenticated(user.role),
                     )
                 }
             }.onFailure { error ->
@@ -137,15 +140,14 @@ class AuthViewModel @Inject constructor(
             authRepository.logout()
             _uiState.update {
                 it.copy(
-                    authorizedRole = null,
-                    isSessionChecked = true,
+                    appSessionState = AppSessionState.Unauthenticated,
                 )
             }
         }
     }
 
-    fun consumeNavigationState() {
-        _uiState.update { it.copy(authorizedRole = null, isRegistered = false) }
+    fun consumeRegistrationState() {
+        _uiState.update { it.copy(isRegistered = false) }
     }
 
     private fun validateLogin(): Boolean {
