@@ -1,6 +1,7 @@
 package com.example.diplomproject.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -10,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -110,60 +113,119 @@ fun ControllerHomeScreen(
 }
 
 @Composable
-fun TestScreen(
-    sessionId: String,
+fun TestQuestionScreen(
     uiState: TestUiState,
-    onFinishTestClick: () -> Unit,
-    onBackToHomeClick: () -> Unit,
+    onOptionSelected: (String) -> Unit,
+    onNextClick: () -> Unit,
+    onRetryClick: () -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(text = "Прохождение теста", style = MaterialTheme.typography.headlineMedium)
-        Text(text = "Session: $sessionId", style = MaterialTheme.typography.bodySmall)
-        Text(
-            text = "Пока экран вопросов в разработке. Можно завершить сессию и увидеть её в истории.",
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        Text(text = "Session: ${uiState.sessionId}", style = MaterialTheme.typography.bodySmall)
 
-        uiState.errorMessage?.let {
-            Text(text = it, color = MaterialTheme.colorScheme.error)
-        }
-
-        Button(
-            onClick = onFinishTestClick,
-            enabled = !uiState.isLoading,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            if (uiState.isLoading) {
+        if (uiState.isInitialLoading) {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
-            } else {
-                Text("Завершить тест")
             }
         }
 
-        Button(onClick = onBackToHomeClick, modifier = Modifier.fillMaxWidth()) {
-            Text("Назад в CandidateHome")
+        uiState.errorMessage?.let {
+            Text(text = it, color = MaterialTheme.colorScheme.error)
+            if (uiState.question == null) {
+                Button(onClick = onRetryClick, modifier = Modifier.fillMaxWidth()) {
+                    Text("Повторить")
+                }
+            }
+        }
+
+        uiState.question?.let { question ->
+            val progress = if (uiState.progress.totalAvailableQuestions > 0) {
+                (uiState.progress.answeredQuestions.toFloat() / uiState.progress.totalAvailableQuestions.toFloat())
+                    .coerceIn(0f, 1f)
+            } else {
+                0f
+            }
+
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                text = "Вопрос ${question.order}. Отвечено ${uiState.progress.answeredQuestions}",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(text = question.text, style = MaterialTheme.typography.titleMedium)
+
+            question.options.sortedBy { it.order }.forEach { option ->
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = { onOptionSelected(option.optionId) },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !uiState.isBusy,
+                    ) {
+                        RadioButton(
+                            selected = option.optionId == uiState.selectedOptionId,
+                            onClick = null,
+                        )
+                        Text(option.text, modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+        Button(
+            onClick = onNextClick,
+            enabled = uiState.selectedOptionId != null && !uiState.isBusy,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            if (uiState.isSubmitting || uiState.isFinishing) {
+                CircularProgressIndicator()
+            } else {
+                Text("Далее")
+            }
         }
     }
 }
 
 @Composable
 fun ResultScreen(
+    result: com.example.diplomproject.domain.model.FinishedSessionResult?,
     onHistoryClick: () -> Unit,
     onBackToCandidateHomeClick: () -> Unit,
 ) {
-    ScreenStub(
-        title = "ResultScreen",
-        actions = listOf(
-            "Открыть History" to onHistoryClick,
-            "Назад в CandidateHome" to onBackToCandidateHomeClick,
-        ),
-    )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(text = "Результат", style = MaterialTheme.typography.headlineMedium)
+
+        if (result == null) {
+            Text(text = "Нет данных по завершённому тесту.")
+        } else {
+            Text(text = result.overallSummary, style = MaterialTheme.typography.bodyMedium)
+            Text(text = "Внимание: ${result.scores.attention}")
+            Text(text = "Стрессоустойчивость: ${result.scores.stressResistance}")
+            Text(text = "Ответственность: ${result.scores.responsibility}")
+            Text(text = "Адаптивность: ${result.scores.adaptability}")
+            Text(text = "Скорость/точность решений: ${result.scores.decisionSpeedAccuracy}")
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+        Button(onClick = onHistoryClick, modifier = Modifier.fillMaxWidth()) {
+            Text("Открыть History")
+        }
+        Button(onClick = onBackToCandidateHomeClick, modifier = Modifier.fillMaxWidth()) {
+            Text("Назад в CandidateHome")
+        }
+    }
 }
 
 @Composable
