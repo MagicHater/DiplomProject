@@ -35,6 +35,7 @@ class TestSessionService(
     private val questionSnapshotRepository: QuestionSnapshotRepository,
     private val answerRepository: AnswerRepository,
     private val adaptiveSessionStateService: AdaptiveSessionStateService,
+    private val adaptiveQuestionSelectionStrategy: AdaptiveQuestionSelectionStrategy,
 ) {
     @Transactional
     fun createSession(userEmail: String): CreateTestSessionResponse {
@@ -69,9 +70,13 @@ class TestSessionService(
 
         val snapshots = questionSnapshotRepository.findBySessionIdOrderByQuestionOrderAsc(sessionId)
         val askedQuestionIds = snapshots.mapNotNull { it.question?.id }.toSet()
+        val sessionState = adaptiveSessionStateService.readState(session.adaptiveStateJson)
 
-        val nextQuestion = questionRepository.findByIsActiveTrueOrderByPriorityDescDifficultyAscCreatedAtAsc()
-            .firstOrNull { it.id !in askedQuestionIds }
+        val nextQuestion = adaptiveQuestionSelectionStrategy.selectNextQuestion(
+            allActiveQuestions = questionRepository.findByIsActiveTrueOrderByPriorityDescDifficultyAscCreatedAtAsc(),
+            askedQuestionIds = askedQuestionIds,
+            state = sessionState,
+        )
 
         if (nextQuestion == null) {
             return NextQuestionResponse(
@@ -174,13 +179,14 @@ class TestSessionService(
         testSessionRepository.save(session)
 
         val totalAvailableQuestions = questionRepository.countByIsActiveTrue()
+        val effectiveMaxQuestions = minOf(totalAvailableQuestions, adaptiveQuestionSelectionStrategy.maxQuestionsPerSession)
         val issuedQuestions = questionSnapshotRepository.findBySessionIdOrderByQuestionOrderAsc(sessionId).size
 
         return SubmitAnswerResponse(
             success = true,
             sessionId = session.id,
             sessionStatus = session.status.dbValue,
-            canContinue = session.status == TestSessionStatus.IN_PROGRESS && updatedState.answeredQuestions < totalAvailableQuestions,
+            canContinue = session.status == TestSessionStatus.IN_PROGRESS && updatedState.answeredQuestions < effectiveMaxQuestions,
             progress = SessionProgressDto(
                 answeredQuestions = updatedState.answeredQuestions,
                 issuedQuestions = issuedQuestions,
