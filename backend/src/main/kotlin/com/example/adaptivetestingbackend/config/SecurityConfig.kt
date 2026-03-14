@@ -40,6 +40,7 @@ class SecurityConfig(
                         "/swagger-ui.html",
                     ).permitAll()
                     .requestMatchers("/me/results", "/me/results/**").hasRole("CANDIDATE")
+                    .requestMatchers("/controller/**").hasRole("CONTROLLER")
                     .anyRequest().authenticated()
             }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
