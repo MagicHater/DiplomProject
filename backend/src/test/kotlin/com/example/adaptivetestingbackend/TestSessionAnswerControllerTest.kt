@@ -139,6 +139,108 @@ class TestSessionAnswerControllerTest(
             .andExpect { status { isForbidden() } }
     }
 
+
+
+    @Test
+    fun `candidate can finish active session and retrieve result`() {
+        val token = registerAndLogin(email = "candidate5@example.com", role = "candidate")
+
+        val sessionId = mockMvc.post("/test-sessions") {
+            header("Authorization", "Bearer $token")
+        }
+            .andExpect { status { isOk() } }
+            .andReturn()
+            .response
+            .contentAsString
+            .let { objectMapper.readTree(it).get("sessionId").asText() }
+
+        val questionJson = mockMvc.get("/test-sessions/$sessionId/next-question") {
+            header("Authorization", "Bearer $token")
+        }
+            .andExpect { status { isOk() } }
+            .andReturn()
+            .response
+            .contentAsString
+            .let { objectMapper.readTree(it).get("question") }
+
+        val answerBody = mapOf(
+            "snapshotId" to questionJson.get("snapshotId").asText(),
+            "selectedOptionId" to questionJson.get("options").get(4).get("optionId").asText(),
+        )
+
+        mockMvc.post("/test-sessions/$sessionId/answers") {
+            header("Authorization", "Bearer $token")
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(answerBody)
+        }
+            .andExpect { status { isOk() } }
+
+        mockMvc.post("/test-sessions/$sessionId/finish") {
+            header("Authorization", "Bearer $token")
+        }
+            .andExpect {
+                status { isOk() }
+                jsonPath("$.sessionId") { value(sessionId) }
+                jsonPath("$.scores.attention") { exists() }
+                jsonPath("$.interpretations.attention") { exists() }
+                jsonPath("$.overallSummary") { exists() }
+            }
+
+        mockMvc.get("/me/results/$sessionId") {
+            header("Authorization", "Bearer $token")
+        }
+            .andExpect {
+                status { isOk() }
+                jsonPath("$.sessionId") { value(sessionId) }
+                jsonPath("$.scores.responsibility") { exists() }
+                jsonPath("$.interpretations.responsibility") { exists() }
+            }
+    }
+
+    @Test
+    fun `cannot finish someone else's session`() {
+        val ownerToken = registerAndLogin(email = "candidate6@example.com", role = "candidate")
+        val intruderToken = registerAndLogin(email = "candidate7@example.com", role = "candidate")
+
+        val sessionId = mockMvc.post("/test-sessions") {
+            header("Authorization", "Bearer $ownerToken")
+        }
+            .andExpect { status { isOk() } }
+            .andReturn()
+            .response
+            .contentAsString
+            .let { objectMapper.readTree(it).get("sessionId").asText() }
+
+        mockMvc.post("/test-sessions/$sessionId/finish") {
+            header("Authorization", "Bearer $intruderToken")
+        }
+            .andExpect { status { isForbidden() } }
+    }
+
+    @Test
+    fun `cannot finish already completed session`() {
+        val token = registerAndLogin(email = "candidate8@example.com", role = "candidate")
+
+        val sessionId = mockMvc.post("/test-sessions") {
+            header("Authorization", "Bearer $token")
+        }
+            .andExpect { status { isOk() } }
+            .andReturn()
+            .response
+            .contentAsString
+            .let { objectMapper.readTree(it).get("sessionId").asText() }
+
+        mockMvc.post("/test-sessions/$sessionId/finish") {
+            header("Authorization", "Bearer $token")
+        }
+            .andExpect { status { isOk() } }
+
+        mockMvc.post("/test-sessions/$sessionId/finish") {
+            header("Authorization", "Bearer $token")
+        }
+            .andExpect { status { isConflict() } }
+    }
+
     private fun registerAndLogin(email: String, role: String): String {
         val registerBody = mapOf(
             "fullName" to "Test User",
