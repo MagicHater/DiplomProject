@@ -265,13 +265,7 @@ private fun ResultContent(
         }
     }
 
-    val scales = listOf(
-        ScaleItemUi("Внимание", result.scores.attention, result.interpretations.attention),
-        ScaleItemUi("Стрессоустойчивость", result.scores.stressResistance, result.interpretations.stressResistance),
-        ScaleItemUi("Ответственность", result.scores.responsibility, result.interpretations.responsibility),
-        ScaleItemUi("Адаптивность", result.scores.adaptability, result.interpretations.adaptability),
-        ScaleItemUi("Скорость/точность решений", result.scores.decisionSpeedAccuracy, result.interpretations.decisionSpeedAccuracy),
-    )
+    val scales = scaleItems(result.scores, result.interpretations)
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         item {
@@ -321,16 +315,21 @@ fun HistoryScreen(
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(uiState.items, key = { it.sessionId }) { item ->
                         Card(modifier = Modifier.fillMaxWidth().clickable { onResultClick(item.sessionId) }) {
-                            Column(modifier = Modifier.padding(12.dp)) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Text(
+                                    text = item.completedAt.formatIsoDateTime(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
                                 Text(
                                     text = item.summary,
                                     style = MaterialTheme.typography.titleMedium,
                                 )
-                                Text(
-                                    text = "Завершено: ${item.completedAt.formatIsoDateTime()}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
+                                compactScoreItems(item.scores).forEach { (title, value) ->
+                                    CompactScoreRow(title = title, value = value)
+                                }
                                 Text(
                                     text = "Открыть полный результат",
                                     style = MaterialTheme.typography.bodySmall,
