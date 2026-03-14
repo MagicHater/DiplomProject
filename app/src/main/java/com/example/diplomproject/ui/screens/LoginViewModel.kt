@@ -29,14 +29,14 @@ class LoginViewModel : ViewModel() {
 
         val loginError = if (state.login.isBlank()) {
             isValid = false
-            "Введите логин или email"
+            "Введите email"
         } else {
             null
         }
 
-        val passwordError = if (state.password.length < 6) {
+        val passwordError = if (state.password.length < 8) {
             isValid = false
-            "Пароль должен быть не короче 6 символов"
+            "Пароль должен быть не короче 8 символов"
         } else {
             null
         }

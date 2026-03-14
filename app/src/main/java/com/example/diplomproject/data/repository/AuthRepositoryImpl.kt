@@ -5,6 +5,7 @@ import com.example.diplomproject.data.remote.auth.AuthApi
 import com.example.diplomproject.data.remote.auth.LoginRequestDto
 import com.example.diplomproject.data.remote.auth.MeResponseDto
 import com.example.diplomproject.data.remote.auth.RegisterRequestDto
+import com.example.diplomproject.data.remote.auth.RegisterResponseDto
 import com.example.diplomproject.domain.model.UserRole
 import com.example.diplomproject.domain.repository.AuthRepository
 import com.example.diplomproject.domain.repository.AuthUser
@@ -21,9 +22,9 @@ class AuthRepositoryImpl @Inject constructor(
     override val tokenFlow: Flow<String?> = sessionManager.tokenFlow
 
     override suspend fun login(login: String, password: String): AuthUser {
-        val response = authApi.login(LoginRequestDto(login = login, password = password))
+        val response = authApi.login(LoginRequestDto(email = login, password = password))
         sessionManager.saveToken(response.token)
-        return response.user.toDomain()
+        return authApi.me().toDomain()
     }
 
     override suspend fun register(
@@ -34,14 +35,13 @@ class AuthRepositoryImpl @Inject constructor(
     ): AuthUser {
         val response = authApi.register(
             RegisterRequestDto(
-                name = name,
-                emailOrLogin = emailOrLogin,
+                fullName = name,
+                email = emailOrLogin,
                 password = password,
                 role = role.toApiRole(),
             ),
         )
-        sessionManager.saveToken(response.token)
-        return response.user.toDomain()
+        return response.toDomain()
     }
 
     override suspend fun me(): AuthUser = authApi.me().toDomain()
@@ -51,9 +51,16 @@ class AuthRepositoryImpl @Inject constructor(
     }
 }
 
+private fun RegisterResponseDto.toDomain(): AuthUser = AuthUser(
+    id = id,
+    name = fullName,
+    email = email,
+    role = role.toUserRole(),
+)
+
 private fun MeResponseDto.toDomain(): AuthUser = AuthUser(
     id = id,
-    name = name,
+    name = fullName,
     email = email,
     role = role.toUserRole(),
 )
