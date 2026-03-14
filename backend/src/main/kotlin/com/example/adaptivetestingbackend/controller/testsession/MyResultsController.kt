@@ -1,5 +1,6 @@
 package com.example.adaptivetestingbackend.controller.testsession
 
+import com.example.adaptivetestingbackend.dto.testsession.MyResultListItemResponse
 import com.example.adaptivetestingbackend.dto.testsession.ResultProfileResponse
 import com.example.adaptivetestingbackend.service.testsession.TestSessionService
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -15,6 +16,13 @@ import java.util.UUID
 class MyResultsController(
     private val testSessionService: TestSessionService,
 ) {
+    @GetMapping
+    fun getResults(
+        @AuthenticationPrincipal userDetails: UserDetails,
+    ): List<MyResultListItemResponse> {
+        return testSessionService.getMyResults(userDetails.username)
+    }
+
     @GetMapping("/{sessionId}")
     fun getResult(
         @PathVariable sessionId: UUID,

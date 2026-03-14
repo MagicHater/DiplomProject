@@ -241,6 +241,57 @@ class TestSessionAnswerControllerTest(
             .andExpect { status { isConflict() } }
     }
 
+    @Test
+    fun `candidate can get own completed results history sorted desc`() {
+        val token = registerAndLogin(email = "candidate9@example.com", role = "candidate")
+
+        val firstSessionId = mockMvc.post("/test-sessions") {
+            header("Authorization", "Bearer $token")
+        }
+            .andExpect { status { isOk() } }
+            .andReturn()
+            .response
+            .contentAsString
+            .let { objectMapper.readTree(it).get("sessionId").asText() }
+
+        mockMvc.post("/test-sessions/$firstSessionId/finish") {
+            header("Authorization", "Bearer $token")
+        }
+            .andExpect { status { isOk() } }
+
+        Thread.sleep(10)
+
+        val secondSessionId = mockMvc.post("/test-sessions") {
+            header("Authorization", "Bearer $token")
+        }
+            .andExpect { status { isOk() } }
+            .andReturn()
+            .response
+            .contentAsString
+            .let { objectMapper.readTree(it).get("sessionId").asText() }
+
+        mockMvc.post("/test-sessions/$secondSessionId/finish") {
+            header("Authorization", "Bearer $token")
+        }
+            .andExpect { status { isOk() } }
+
+        mockMvc.get("/me/results") {
+            header("Authorization", "Bearer $token")
+        }
+            .andExpect {
+                status { isOk() }
+                jsonPath("$[0].sessionId") { value(secondSessionId) }
+                jsonPath("$[1].sessionId") { value(firstSessionId) }
+                jsonPath("$[0].completedAt") { exists() }
+                jsonPath("$[0].summary") { exists() }
+                jsonPath("$[0].scores.attention") { exists() }
+                jsonPath("$[0].scores.stressResistance") { exists() }
+                jsonPath("$[0].scores.responsibility") { exists() }
+                jsonPath("$[0].scores.adaptability") { exists() }
+                jsonPath("$[0].scores.decisionSpeedAccuracy") { exists() }
+            }
+    }
+
     private fun registerAndLogin(email: String, role: String): String {
         val registerBody = mapOf(
             "fullName" to "Test User",
