@@ -4,8 +4,6 @@ import com.example.adaptivetestingbackend.dto.testsession.CreateTestSessionRespo
 import com.example.adaptivetestingbackend.dto.testsession.MyResultListItemResponse
 import com.example.adaptivetestingbackend.dto.testsession.NextQuestionResponse
 import com.example.adaptivetestingbackend.dto.testsession.ResultProfileResponse
-import com.example.adaptivetestingbackend.dto.testsession.ScaleInterpretationsDto
-import com.example.adaptivetestingbackend.dto.testsession.ScaleScoresDto
 import com.example.adaptivetestingbackend.dto.testsession.SessionProgressDto
 import com.example.adaptivetestingbackend.dto.testsession.SessionQuestionDto
 import com.example.adaptivetestingbackend.dto.testsession.SessionQuestionOptionDto
@@ -44,6 +42,7 @@ class TestSessionService(
     private val adaptiveSessionStateService: AdaptiveSessionStateService,
     private val adaptiveQuestionSelectionStrategy: AdaptiveQuestionSelectionStrategy,
     private val resultCalculationService: ResultCalculationService,
+    private val resultProfileMapper: ResultProfileMapper,
 ) {
     @Transactional
     fun createSession(userEmail: String): CreateTestSessionResponse {
@@ -224,7 +223,7 @@ class TestSessionService(
 
         val answers = answerRepository.findBySessionId(session.id)
         val calculated = resultCalculationService.calculate(answers)
-        val summary = buildOverallSummary(calculated)
+        val summary = resultProfileMapper.buildOverallSummary(calculated)
         val now = OffsetDateTime.now()
 
         val profile = resultProfileRepository.save(
@@ -246,7 +245,7 @@ class TestSessionService(
         session.updatedAt = now
         testSessionRepository.save(session)
 
-        return mapResultDto(profile)
+        return resultProfileMapper.toResultProfile(profile)
     }
 
     @Transactional(readOnly = true)
@@ -260,7 +259,7 @@ class TestSessionService(
         val resultProfile = resultProfileRepository.findBySessionId(sessionId)
             .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Result profile not found") }
 
-        return mapResultDto(resultProfile)
+        return resultProfileMapper.toResultProfile(resultProfile)
     }
 
     @Transactional(readOnly = true)
@@ -269,73 +268,7 @@ class TestSessionService(
         return resultProfileRepository.findCompletedByCandidateIdOrderByCompletedAtDesc(
             candidateId = user.id,
             status = TestSessionStatus.COMPLETED,
-        ).map { mapResultListItemDto(it) }
-    }
-
-    private fun mapResultDto(profile: ResultProfileEntity): ResultProfileResponse {
-        val completedAt = profile.session.completedAt
-            ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Session completedAt is missing")
-
-        val scores = ScaleScoresDto(
-            attention = profile.attentionScore,
-            stressResistance = profile.stressResistanceScore,
-            responsibility = profile.responsibilityScore,
-            adaptability = profile.adaptabilityScore,
-            decisionSpeedAccuracy = profile.decisionSpeedAccuracyScore,
-        )
-
-        return ResultProfileResponse(
-            sessionId = profile.session.id,
-            completedAt = completedAt,
-            scores = scores,
-            interpretations = ScaleInterpretationsDto(
-                attention = interpretScale("Внимательность", profile.attentionScore),
-                stressResistance = interpretScale("Стрессоустойчивость", profile.stressResistanceScore),
-                responsibility = interpretScale("Ответственность", profile.responsibilityScore),
-                adaptability = interpretScale("Адаптивность", profile.adaptabilityScore),
-                decisionSpeedAccuracy = interpretScale("Скорость/точность решений", profile.decisionSpeedAccuracyScore),
-            ),
-            overallSummary = profile.summary ?: buildOverallSummary(
-                ResultCalculationService.CalculatedProfile(
-                    attention = profile.attentionScore,
-                    stressResistance = profile.stressResistanceScore,
-                    responsibility = profile.responsibilityScore,
-                    adaptability = profile.adaptabilityScore,
-                    decisionSpeedAccuracy = profile.decisionSpeedAccuracyScore,
-                ),
-            ),
-        )
-    }
-
-    private fun mapResultListItemDto(profile: ResultProfileEntity): MyResultListItemResponse {
-        val detailedResult = mapResultDto(profile)
-        return MyResultListItemResponse(
-            sessionId = detailedResult.sessionId,
-            completedAt = detailedResult.completedAt,
-            summary = detailedResult.overallSummary,
-            scores = detailedResult.scores,
-        )
-    }
-
-    private fun interpretScale(scaleTitle: String, score: java.math.BigDecimal): String {
-        return when {
-            score < java.math.BigDecimal("34") -> "$scaleTitle: зона развития"
-            score < java.math.BigDecimal("67") -> "$scaleTitle: стабильный средний уровень"
-            else -> "$scaleTitle: выраженная сильная сторона"
-        }
-    }
-
-    private fun buildOverallSummary(profile: ResultCalculationService.CalculatedProfile): String {
-        val scales = listOf(
-            "внимательность" to profile.attention,
-            "стрессоустойчивость" to profile.stressResistance,
-            "ответственность" to profile.responsibility,
-            "адаптивность" to profile.adaptability,
-            "скорость/точность решений" to profile.decisionSpeedAccuracy,
-        )
-        val topScale = scales.maxBy { it.second }
-        val growthScale = scales.minBy { it.second }
-        return "Сильная сторона: ${topScale.first}. Зона роста: ${growthScale.first}."
+        ).map { resultProfileMapper.toResultListItem(it) }
     }
 
     private fun getCandidateUser(userEmail: String): UserEntity {

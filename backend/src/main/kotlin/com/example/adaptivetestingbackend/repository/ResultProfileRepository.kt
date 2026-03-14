@@ -25,4 +25,45 @@ interface ResultProfileRepository : JpaRepository<ResultProfileEntity, UUID> {
         @Param("candidateId") candidateId: UUID,
         @Param("status") status: TestSessionStatus,
     ): List<ResultProfileEntity>
+
+    @Query(
+        """
+        select rp
+        from ResultProfileEntity rp
+        join fetch rp.session s
+        join fetch s.candidate c
+        where s.id = :sessionId
+        """,
+    )
+    fun findBySessionIdWithCandidate(
+        @Param("sessionId") sessionId: UUID,
+    ): Optional<ResultProfileEntity>
+
+    @Query(
+        """
+        select count(rp)
+        from ResultProfileEntity rp
+        join rp.session s
+        where s.candidate.id = :candidateId
+          and s.status = :status
+        """,
+    )
+    fun countCompletedByCandidateId(
+        @Param("candidateId") candidateId: UUID,
+        @Param("status") status: TestSessionStatus,
+    ): Long
+
+    @Query(
+        """
+        select max(s.completedAt)
+        from ResultProfileEntity rp
+        join rp.session s
+        where s.candidate.id = :candidateId
+          and s.status = :status
+        """,
+    )
+    fun findLastCompletedAtByCandidateId(
+        @Param("candidateId") candidateId: UUID,
+        @Param("status") status: TestSessionStatus,
+    ): java.time.OffsetDateTime?
 }
