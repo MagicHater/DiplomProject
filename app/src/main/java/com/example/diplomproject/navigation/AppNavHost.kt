@@ -3,14 +3,20 @@ package com.example.diplomproject.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.diplomproject.domain.model.UserRole
 import com.example.diplomproject.ui.screens.AuthViewModel
+import com.example.diplomproject.ui.screens.AppSessionState
 import com.example.diplomproject.ui.screens.CandidateDetailsScreen
 import com.example.diplomproject.ui.screens.CandidateHomeScreen
 import com.example.diplomproject.ui.screens.CandidateListScreen
@@ -32,20 +38,30 @@ fun AppNavHost(
         authViewModel.checkSavedSession()
     }
 
-    LaunchedEffect(authState.authorizedRole, authState.isSessionChecked) {
-        if (!authState.isSessionChecked) return@LaunchedEffect
-
-        val destination = when (authState.authorizedRole) {
-            UserRole.Controller -> AppDestination.ControllerHome.route
-            UserRole.Candidate -> AppDestination.CandidateHome.route
-            null -> AppDestination.Login.route
+    LaunchedEffect(authState.appSessionState) {
+        val destination = when (val sessionState = authState.appSessionState) {
+            AppSessionState.Initializing -> return@LaunchedEffect
+            AppSessionState.Unauthenticated -> AppDestination.Login.route
+            is AppSessionState.Authenticated -> {
+                if (sessionState.role == UserRole.Controller) {
+                    AppDestination.ControllerHome.route
+                } else {
+                    AppDestination.CandidateHome.route
+                }
+            }
         }
 
         navController.navigate(destination) {
             popUpTo(navController.graph.startDestinationId) { inclusive = true }
             launchSingleTop = true
         }
-        authViewModel.consumeNavigationState()
+    }
+
+    if (authState.appSessionState is AppSessionState.Initializing) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
     }
 
     NavHost(
@@ -56,17 +72,6 @@ fun AppNavHost(
             LoginScreen(
                 onRegisterClick = { navController.navigate(AppDestination.Register.route) },
                 viewModel = authViewModel,
-                onLoginSuccess = { role ->
-                    val destination = if (role == UserRole.Controller) {
-                        AppDestination.ControllerHome.route
-                    } else {
-                        AppDestination.CandidateHome.route
-                    }
-                    navController.navigate(destination) {
-                        popUpTo(AppDestination.Login.route) { inclusive = true }
-                        launchSingleTop = true
-                    }
-                },
             )
         }
 
@@ -84,9 +89,6 @@ fun AppNavHost(
                 onHistoryClick = { navController.navigate(AppDestination.History.route) },
                 onLogoutClick = {
                     authViewModel.logout()
-                    navController.navigate(AppDestination.Login.route) {
-                        popUpTo(AppDestination.CandidateHome.route) { inclusive = true }
-                    }
                 },
             )
         }
@@ -97,9 +99,6 @@ fun AppNavHost(
                 onHistoryClick = { navController.navigate(AppDestination.History.route) },
                 onLogoutClick = {
                     authViewModel.logout()
-                    navController.navigate(AppDestination.Login.route) {
-                        popUpTo(AppDestination.ControllerHome.route) { inclusive = true }
-                    }
                 },
             )
         }

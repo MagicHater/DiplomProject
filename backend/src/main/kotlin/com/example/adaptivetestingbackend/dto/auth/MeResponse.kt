@@ -4,7 +4,8 @@ import java.util.UUID
 
 data class MeResponse(
     val id: UUID,
-    val fullName: String,
+    val username: String,
     val email: String,
+    val displayName: String?,
     val role: String,
 )

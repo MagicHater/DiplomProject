@@ -59,6 +59,8 @@ class AuthControllerTest(
             .andExpect {
                 status { isOk() }
                 jsonPath("$.email") { value("ivan@example.com") }
+                jsonPath("$.username") { value("ivan@example.com") }
+                jsonPath("$.displayName") { value("Ivan Petrov") }
                 jsonPath("$.role") { value("candidate") }
             }
     }

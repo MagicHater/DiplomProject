@@ -69,8 +69,9 @@ class AuthService(
 
         return MeResponse(
             id = user.id,
-            fullName = user.fullName,
+            username = user.email,
             email = user.email,
+            displayName = user.fullName,
             role = user.role.name.dbValue,
         )
     }
