@@ -16,6 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.diplomproject.domain.model.TestQuestion
 import com.example.diplomproject.domain.model.UserRole
 import com.example.diplomproject.ui.screens.AuthViewModel
 import com.example.diplomproject.ui.screens.AppSessionState
@@ -29,7 +30,7 @@ import com.example.diplomproject.ui.screens.HistoryViewModel
 import com.example.diplomproject.ui.screens.LoginScreen
 import com.example.diplomproject.ui.screens.RegisterScreen
 import com.example.diplomproject.ui.screens.ResultScreen
-import com.example.diplomproject.ui.screens.TestScreen
+import com.example.diplomproject.ui.screens.TestQuestionScreen
 import com.example.diplomproject.ui.screens.TestViewModel
 
 @Composable
@@ -94,6 +95,9 @@ fun AppNavHost(
 
             LaunchedEffect(candidateHomeState.startedSession?.sessionId) {
                 val startedSession = candidateHomeState.startedSession ?: return@LaunchedEffect
+                navController.currentBackStackEntry
+                    ?.savedStateHandle
+                    ?.set("initialQuestion", startedSession.firstQuestion)
                 navController.navigate(AppDestination.Test.createRoute(startedSession.sessionId))
                 candidateHomeViewModel.consumeNavigation()
             }
@@ -122,28 +126,43 @@ fun AppNavHost(
         composable(
             route = AppDestination.Test.route,
             arguments = listOf(navArgument(AppDestination.Test.sessionIdArg) { type = NavType.StringType }),
-        ) { backStackEntry ->
-            val sessionId = backStackEntry.arguments?.getString(AppDestination.Test.sessionIdArg).orEmpty()
+        ) {
             val testViewModel: TestViewModel = hiltViewModel()
             val testUiState by testViewModel.uiState.collectAsState()
+            val initialQuestion = navController.previousBackStackEntry
+                ?.savedStateHandle
+                ?.get<TestQuestion>("initialQuestion")
 
-            LaunchedEffect(testUiState.finished) {
-                if (testUiState.finished) {
-                    navController.navigate(AppDestination.History.route)
-                    testViewModel.consumeFinished()
+            LaunchedEffect(initialQuestion?.snapshotId) {
+                initialQuestion?.let(testViewModel::setInitialQuestion)
+            }
+
+            LaunchedEffect(testUiState.navigateToResult) {
+                if (testUiState.navigateToResult) {
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("finishedResult", testUiState.finishResult)
+
+                    navController.navigate(AppDestination.Result.route)
+                    testViewModel.consumeResultNavigation()
                 }
             }
 
-            TestScreen(
-                sessionId = sessionId,
+            TestQuestionScreen(
                 uiState = testUiState,
-                onFinishTestClick = { testViewModel.finishTest(sessionId) },
-                onBackToHomeClick = { navController.navigate(AppDestination.CandidateHome.route) },
+                onOptionSelected = testViewModel::onOptionSelected,
+                onNextClick = testViewModel::onNextClick,
+                onRetryClick = testViewModel::retryLoad,
             )
         }
 
         composable(AppDestination.Result.route) {
+            val result = navController.previousBackStackEntry
+                ?.savedStateHandle
+                ?.get<com.example.diplomproject.domain.model.FinishedSessionResult>("finishedResult")
+
             ResultScreen(
+                result = result,
                 onHistoryClick = { navController.navigate(AppDestination.History.route) },
                 onBackToCandidateHomeClick = {
                     navController.navigate(AppDestination.CandidateHome.route)

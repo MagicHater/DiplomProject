@@ -39,6 +39,29 @@ data class SessionQuestionOptionDto(
 )
 
 @Serializable
+data class SubmitAnswerRequestDto(
+    @SerialName("snapshotId") val snapshotId: String,
+    @SerialName("selectedOptionId") val selectedOptionId: String,
+)
+
+@Serializable
+data class SubmitAnswerResponseDto(
+    @SerialName("success") val success: Boolean,
+    @SerialName("sessionId") val sessionId: String,
+    @SerialName("sessionStatus") val sessionStatus: String,
+    @SerialName("canContinue") val canContinue: Boolean,
+    @SerialName("progress") val progress: SessionProgressDto,
+)
+
+@Serializable
+data class SessionProgressDto(
+    @SerialName("answeredQuestions") val answeredQuestions: Int,
+    @SerialName("issuedQuestions") val issuedQuestions: Int,
+    @SerialName("totalAvailableQuestions") val totalAvailableQuestions: Int,
+    @SerialName("completionPercent") val completionPercent: Int,
+)
+
+@Serializable
 data class MyResultListItemResponseDto(
     @SerialName("sessionId") val sessionId: String,
     @SerialName("completedAt") val completedAt: String,
@@ -60,5 +83,15 @@ data class FinishSessionResponseDto(
     @SerialName("sessionId") val sessionId: String,
     @SerialName("completedAt") val completedAt: String,
     @SerialName("scores") val scores: ScaleScoresDto,
+    @SerialName("interpretations") val interpretations: ScaleInterpretationsDto,
     @SerialName("overallSummary") val overallSummary: String,
+)
+
+@Serializable
+data class ScaleInterpretationsDto(
+    @SerialName("attention") val attention: String,
+    @SerialName("stressResistance") val stressResistance: String,
+    @SerialName("responsibility") val responsibility: String,
+    @SerialName("adaptability") val adaptability: String,
+    @SerialName("decisionSpeedAccuracy") val decisionSpeedAccuracy: String,
 )
