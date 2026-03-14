@@ -70,4 +70,35 @@ class AuthControllerTest(
                 status { isUnauthorized() }
             }
     }
+
+    @Test
+    fun `login with wrong password returns unauthorized`() {
+        val registerBody = mapOf(
+            "fullName" to "Olga Ivanova",
+            "email" to "olga@example.com",
+            "password" to "correct-password",
+            "role" to "candidate",
+        )
+
+        mockMvc.post("/auth/register") {
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(registerBody)
+        }
+            .andExpect {
+                status { isOk() }
+            }
+
+        val loginBody = mapOf(
+            "email" to "olga@example.com",
+            "password" to "wrong-password",
+        )
+
+        mockMvc.post("/auth/login") {
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(loginBody)
+        }
+            .andExpect {
+                status { isUnauthorized() }
+            }
+    }
 }
