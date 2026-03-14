@@ -6,4 +6,6 @@ import java.util.UUID
 
 interface QuestionRepository : JpaRepository<QuestionEntity, UUID> {
     fun findByIsActiveTrue(): List<QuestionEntity>
+
+    fun findByIsActiveTrueOrderByPriorityDescDifficultyAscCreatedAtAsc(): List<QuestionEntity>
 }
