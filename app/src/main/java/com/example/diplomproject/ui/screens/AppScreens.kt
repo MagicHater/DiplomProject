@@ -1,6 +1,5 @@
 package com.example.diplomproject.ui.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -265,13 +264,7 @@ private fun ResultContent(
         }
     }
 
-    val scales = listOf(
-        ScaleItemUi("Внимание", result.scores.attention, result.interpretations.attention),
-        ScaleItemUi("Стрессоустойчивость", result.scores.stressResistance, result.interpretations.stressResistance),
-        ScaleItemUi("Ответственность", result.scores.responsibility, result.interpretations.responsibility),
-        ScaleItemUi("Адаптивность", result.scores.adaptability, result.interpretations.adaptability),
-        ScaleItemUi("Скорость/точность решений", result.scores.decisionSpeedAccuracy, result.interpretations.decisionSpeedAccuracy),
-    )
+    val scales = scaleItems(result.scores, result.interpretations)
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         item {
@@ -318,24 +311,33 @@ fun HistoryScreen(
             }
 
             else -> {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     items(uiState.items, key = { it.sessionId }) { item ->
-                        Card(modifier = Modifier.fillMaxWidth().clickable { onResultClick(item.sessionId) }) {
-                            Column(modifier = Modifier.padding(12.dp)) {
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Text(
+                                    text = item.completedAt.formatIsoDateTime(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
                                 Text(
                                     text = item.summary,
                                     style = MaterialTheme.typography.titleMedium,
                                 )
-                                Text(
-                                    text = "Завершено: ${item.completedAt.formatIsoDateTime()}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Открыть полный результат",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
+                                compactScoreItems(item.scores).forEach { (title, value) ->
+                                    CompactScoreRow(title = title, value = value)
+                                }
+                                Button(
+                                    onClick = { onResultClick(item.sessionId) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text("Открыть полный результат")
+                                }
                             }
                         }
                     }
@@ -343,7 +345,10 @@ fun HistoryScreen(
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        if (!uiState.items.any() || uiState.isLoading || uiState.errorMessage != null || uiState.infoMessage != null) {
+            Spacer(modifier = Modifier.weight(1f))
+        }
+
         Button(onClick = onBackToHomeClick, modifier = Modifier.fillMaxWidth()) {
             Text("Назад в домашний кабинет")
         }
