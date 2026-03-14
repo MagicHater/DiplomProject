@@ -2,6 +2,7 @@ package com.example.adaptivetestingbackend.controller.testsession
 
 import com.example.adaptivetestingbackend.dto.testsession.CreateTestSessionResponse
 import com.example.adaptivetestingbackend.dto.testsession.NextQuestionResponse
+import com.example.adaptivetestingbackend.dto.testsession.ResultProfileResponse
 import com.example.adaptivetestingbackend.dto.testsession.SubmitAnswerRequest
 import com.example.adaptivetestingbackend.dto.testsession.SubmitAnswerResponse
 import com.example.adaptivetestingbackend.service.testsession.TestSessionService
@@ -41,5 +42,13 @@ class TestSessionController(
         @Valid @RequestBody request: SubmitAnswerRequest,
     ): SubmitAnswerResponse {
         return testSessionService.submitAnswer(id, userDetails.username, request)
+    }
+
+    @PostMapping("/{id}/finish")
+    fun finishSession(
+        @PathVariable id: UUID,
+        @AuthenticationPrincipal userDetails: UserDetails,
+    ): ResultProfileResponse {
+        return testSessionService.finishSession(id, userDetails.username)
     }
 }
