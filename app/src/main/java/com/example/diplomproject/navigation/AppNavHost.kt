@@ -33,6 +33,7 @@ fun AppNavHost(
     authViewModel: AuthViewModel = hiltViewModel(),
 ) {
     val authState by authViewModel.uiState.collectAsState()
+    val authenticatedRole = (authState.appSessionState as? AppSessionState.Authenticated)?.role
 
     LaunchedEffect(Unit) {
         authViewModel.checkSavedSession()
@@ -120,12 +121,17 @@ fun AppNavHost(
         }
 
         composable(AppDestination.History.route) {
+            val homeRoute = if (authenticatedRole == UserRole.Controller) {
+                AppDestination.ControllerHome.route
+            } else {
+                AppDestination.CandidateHome.route
+            }
+
             HistoryScreen(
-                onCandidateHomeClick = {
-                    navController.navigate(AppDestination.CandidateHome.route)
-                },
-                onControllerHomeClick = {
-                    navController.navigate(AppDestination.ControllerHome.route)
+                onBackToHomeClick = {
+                    navController.navigate(homeRoute) {
+                        launchSingleTop = true
+                    }
                 },
             )
         }

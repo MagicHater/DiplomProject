@@ -97,15 +97,11 @@ fun ResultScreen(
 
 @Composable
 fun HistoryScreen(
-    onCandidateHomeClick: () -> Unit,
-    onControllerHomeClick: () -> Unit,
+    onBackToHomeClick: () -> Unit,
 ) {
     ScreenStub(
         title = "HistoryScreen",
-        actions = listOf(
-            "К CandidateHome" to onCandidateHomeClick,
-            "К ControllerHome" to onControllerHomeClick,
-        ),
+        actions = listOf("Назад в домашний кабинет" to onBackToHomeClick),
     )
 }
 
