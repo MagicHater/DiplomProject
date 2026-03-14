@@ -37,7 +37,7 @@ fun RegisterScreen(
     LaunchedEffect(uiState.isRegistered) {
         if (uiState.isRegistered) {
             onLoginClick()
-            viewModel.consumeNavigationState()
+            viewModel.consumeRegistrationState()
         }
     }
 

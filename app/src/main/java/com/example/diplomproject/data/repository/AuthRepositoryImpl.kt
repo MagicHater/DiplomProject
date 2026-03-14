@@ -60,7 +60,7 @@ private fun RegisterResponseDto.toDomain(): AuthUser = AuthUser(
 
 private fun MeResponseDto.toDomain(): AuthUser = AuthUser(
     id = id,
-    name = fullName,
+    name = displayName ?: username,
     email = email,
     role = role.toUserRole(),
 )

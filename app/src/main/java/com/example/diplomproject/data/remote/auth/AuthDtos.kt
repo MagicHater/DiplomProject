@@ -33,7 +33,8 @@ data class RegisterResponseDto(
 @Serializable
 data class MeResponseDto(
     @SerialName("id") val id: String,
-    @SerialName("fullName") val fullName: String,
+    @SerialName("username") val username: String,
     @SerialName("email") val email: String,
+    @SerialName("displayName") val displayName: String? = null,
     @SerialName("role") val role: String,
 )
