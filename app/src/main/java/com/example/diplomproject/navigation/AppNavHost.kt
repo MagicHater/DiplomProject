@@ -30,6 +30,7 @@ import com.example.diplomproject.ui.screens.HistoryViewModel
 import com.example.diplomproject.ui.screens.LoginScreen
 import com.example.diplomproject.ui.screens.RegisterScreen
 import com.example.diplomproject.ui.screens.ResultScreen
+import com.example.diplomproject.ui.screens.ResultViewModel
 import com.example.diplomproject.ui.screens.TestQuestionScreen
 import com.example.diplomproject.ui.screens.TestViewModel
 
@@ -105,7 +106,7 @@ fun AppNavHost(
             CandidateHomeScreen(
                 uiState = candidateHomeState,
                 onStartTestClick = { candidateHomeViewModel.startTest() },
-                onResultClick = { navController.navigate(AppDestination.Result.route) },
+                onResultClick = { navController.navigate(AppDestination.History.route) },
                 onHistoryClick = { navController.navigate(AppDestination.History.route) },
                 onLogoutClick = {
                     authViewModel.logout()
@@ -139,11 +140,8 @@ fun AppNavHost(
 
             LaunchedEffect(testUiState.navigateToResult) {
                 if (testUiState.navigateToResult) {
-                    navController.currentBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("finishedResult", testUiState.finishResult)
-
-                    navController.navigate(AppDestination.Result.route)
+                    val finishedSessionId = testUiState.finishResult?.sessionId ?: return@LaunchedEffect
+                    navController.navigate(AppDestination.Result.createRoute(finishedSessionId))
                     testViewModel.consumeResultNavigation()
                 }
             }
@@ -156,13 +154,16 @@ fun AppNavHost(
             )
         }
 
-        composable(AppDestination.Result.route) {
-            val result = navController.previousBackStackEntry
-                ?.savedStateHandle
-                ?.get<com.example.diplomproject.domain.model.FinishedSessionResult>("finishedResult")
+        composable(
+            route = AppDestination.Result.route,
+            arguments = listOf(navArgument(AppDestination.Result.sessionIdArg) { type = NavType.StringType }),
+        ) {
+            val resultViewModel: ResultViewModel = hiltViewModel()
+            val resultUiState by resultViewModel.uiState.collectAsState()
 
             ResultScreen(
-                result = result,
+                uiState = resultUiState,
+                onRetryClick = resultViewModel::load,
                 onHistoryClick = { navController.navigate(AppDestination.History.route) },
                 onBackToCandidateHomeClick = {
                     navController.navigate(AppDestination.CandidateHome.route)
@@ -185,6 +186,9 @@ fun AppNavHost(
 
             HistoryScreen(
                 uiState = historyUiState,
+                onResultClick = { sessionId ->
+                    navController.navigate(AppDestination.Result.createRoute(sessionId))
+                },
                 onBackToHomeClick = {
                     navController.navigate(homeRoute) {
                         launchSingleTop = true

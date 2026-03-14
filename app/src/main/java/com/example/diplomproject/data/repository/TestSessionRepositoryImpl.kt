@@ -56,6 +56,10 @@ class TestSessionRepositoryImpl @Inject constructor(
         return appApi.getMyResults().map { it.toDomain() }
     }
 
+    override suspend fun getResult(sessionId: String): FinishedSessionResult {
+        return appApi.getResult(sessionId).toDomain()
+    }
+
     override suspend fun finishSession(sessionId: String): FinishedSessionResult {
         return appApi.finishSession(sessionId).toDomain()
     }

@@ -24,6 +24,9 @@ interface AppApi {
     @GET("me/results")
     suspend fun getMyResults(): List<MyResultListItemResponseDto>
 
+    @GET("me/results/{sessionId}")
+    suspend fun getResult(@Path("sessionId") sessionId: String): FinishSessionResponseDto
+
     @POST("test-sessions/{sessionId}/finish")
     suspend fun finishSession(@Path("sessionId") sessionId: String): FinishSessionResponseDto
 }

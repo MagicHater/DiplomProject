@@ -10,5 +10,6 @@ interface TestSessionRepository {
     suspend fun getNextQuestion(sessionId: String): NextQuestionPayload
     suspend fun submitAnswer(sessionId: String, snapshotId: String, selectedOptionId: String): SubmitAnswerResult
     suspend fun getMyResults(): List<CandidateResultHistoryItem>
+    suspend fun getResult(sessionId: String): FinishedSessionResult
     suspend fun finishSession(sessionId: String): FinishedSessionResult
 }
