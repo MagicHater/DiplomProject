@@ -48,14 +48,17 @@ data class MyResultListItemResponseDto(
 
 @Serializable
 data class ScaleScoresDto(
-    @SerialName("attention") val attention: Int,
-    @SerialName("stressResistance") val stressResistance: Int,
-    @SerialName("responsibility") val responsibility: Int,
-    @SerialName("adaptability") val adaptability: Int,
-    @SerialName("decisionSpeedAccuracy") val decisionSpeedAccuracy: Int,
+    @SerialName("attention") val attention: Double,
+    @SerialName("stressResistance") val stressResistance: Double,
+    @SerialName("responsibility") val responsibility: Double,
+    @SerialName("adaptability") val adaptability: Double,
+    @SerialName("decisionSpeedAccuracy") val decisionSpeedAccuracy: Double,
 )
 
 @Serializable
 data class FinishSessionResponseDto(
-    @SerialName("summary") val summary: String,
+    @SerialName("sessionId") val sessionId: String,
+    @SerialName("completedAt") val completedAt: String,
+    @SerialName("scores") val scores: ScaleScoresDto,
+    @SerialName("overallSummary") val overallSummary: String,
 )

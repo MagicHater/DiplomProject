@@ -25,11 +25,11 @@ data class NextQuestionPayload(
 )
 
 data class ScaleScores(
-    val attention: Int,
-    val stressResistance: Int,
-    val responsibility: Int,
-    val adaptability: Int,
-    val decisionSpeedAccuracy: Int,
+    val attention: Double,
+    val stressResistance: Double,
+    val responsibility: Double,
+    val adaptability: Double,
+    val decisionSpeedAccuracy: Double,
 )
 
 data class CandidateResultHistoryItem(
