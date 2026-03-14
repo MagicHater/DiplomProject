@@ -1,6 +1,7 @@
 package com.example.adaptivetestingbackend.service.testsession
 
 import com.example.adaptivetestingbackend.dto.testsession.CreateTestSessionResponse
+import com.example.adaptivetestingbackend.dto.testsession.MyResultListItemResponse
 import com.example.adaptivetestingbackend.dto.testsession.NextQuestionResponse
 import com.example.adaptivetestingbackend.dto.testsession.ResultProfileResponse
 import com.example.adaptivetestingbackend.dto.testsession.ScaleInterpretationsDto
@@ -262,6 +263,15 @@ class TestSessionService(
         return mapResultDto(resultProfile)
     }
 
+    @Transactional(readOnly = true)
+    fun getMyResults(userEmail: String): List<MyResultListItemResponse> {
+        val user = getCandidateUser(userEmail)
+        return resultProfileRepository.findCompletedByCandidateIdOrderByCompletedAtDesc(
+            candidateId = user.id,
+            status = TestSessionStatus.COMPLETED,
+        ).map { mapResultListItemDto(it) }
+    }
+
     private fun mapResultDto(profile: ResultProfileEntity): ResultProfileResponse {
         val completedAt = profile.session.completedAt
             ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Session completedAt is missing")
@@ -294,6 +304,16 @@ class TestSessionService(
                     decisionSpeedAccuracy = profile.decisionSpeedAccuracyScore,
                 ),
             ),
+        )
+    }
+
+    private fun mapResultListItemDto(profile: ResultProfileEntity): MyResultListItemResponse {
+        val detailedResult = mapResultDto(profile)
+        return MyResultListItemResponse(
+            sessionId = detailedResult.sessionId,
+            completedAt = detailedResult.completedAt,
+            summary = detailedResult.overallSummary,
+            scores = detailedResult.scores,
         )
     }
 
