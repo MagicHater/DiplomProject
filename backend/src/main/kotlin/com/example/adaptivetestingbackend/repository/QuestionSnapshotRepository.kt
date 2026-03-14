@@ -6,4 +6,6 @@ import java.util.UUID
 
 interface QuestionSnapshotRepository : JpaRepository<QuestionSnapshotEntity, UUID> {
     fun findBySessionIdOrderByQuestionOrderAsc(sessionId: UUID): List<QuestionSnapshotEntity>
+
+    fun findByIdAndSessionId(id: UUID, sessionId: UUID): QuestionSnapshotEntity?
 }

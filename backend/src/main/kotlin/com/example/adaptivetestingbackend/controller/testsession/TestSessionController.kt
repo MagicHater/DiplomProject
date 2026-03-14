@@ -2,12 +2,16 @@ package com.example.adaptivetestingbackend.controller.testsession
 
 import com.example.adaptivetestingbackend.dto.testsession.CreateTestSessionResponse
 import com.example.adaptivetestingbackend.dto.testsession.NextQuestionResponse
+import com.example.adaptivetestingbackend.dto.testsession.SubmitAnswerRequest
+import com.example.adaptivetestingbackend.dto.testsession.SubmitAnswerResponse
 import com.example.adaptivetestingbackend.service.testsession.TestSessionService
+import jakarta.validation.Valid
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
@@ -28,5 +32,14 @@ class TestSessionController(
         @AuthenticationPrincipal userDetails: UserDetails,
     ): NextQuestionResponse {
         return testSessionService.getNextQuestion(id, userDetails.username)
+    }
+
+    @PostMapping("/{id}/answers")
+    fun submitAnswer(
+        @PathVariable id: UUID,
+        @AuthenticationPrincipal userDetails: UserDetails,
+        @Valid @RequestBody request: SubmitAnswerRequest,
+    ): SubmitAnswerResponse {
+        return testSessionService.submitAnswer(id, userDetails.username, request)
     }
 }
