@@ -23,3 +23,18 @@ data class NextQuestionPayload(
     val hasNextQuestion: Boolean,
     val question: TestQuestion?,
 )
+
+data class ScaleScores(
+    val attention: Int,
+    val stressResistance: Int,
+    val responsibility: Int,
+    val adaptability: Int,
+    val decisionSpeedAccuracy: Int,
+)
+
+data class CandidateResultHistoryItem(
+    val sessionId: String,
+    val completedAt: String,
+    val summary: String,
+    val scores: ScaleScores,
+)

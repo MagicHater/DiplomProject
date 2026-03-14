@@ -25,10 +25,12 @@ import com.example.diplomproject.ui.screens.CandidateHomeViewModel
 import com.example.diplomproject.ui.screens.CandidateListScreen
 import com.example.diplomproject.ui.screens.ControllerHomeScreen
 import com.example.diplomproject.ui.screens.HistoryScreen
+import com.example.diplomproject.ui.screens.HistoryViewModel
 import com.example.diplomproject.ui.screens.LoginScreen
 import com.example.diplomproject.ui.screens.RegisterScreen
 import com.example.diplomproject.ui.screens.ResultScreen
 import com.example.diplomproject.ui.screens.TestScreen
+import com.example.diplomproject.ui.screens.TestViewModel
 
 @Composable
 fun AppNavHost(
@@ -122,9 +124,20 @@ fun AppNavHost(
             arguments = listOf(navArgument(AppDestination.Test.sessionIdArg) { type = NavType.StringType }),
         ) { backStackEntry ->
             val sessionId = backStackEntry.arguments?.getString(AppDestination.Test.sessionIdArg).orEmpty()
+            val testViewModel: TestViewModel = hiltViewModel()
+            val testUiState by testViewModel.uiState.collectAsState()
+
+            LaunchedEffect(testUiState.finished) {
+                if (testUiState.finished) {
+                    navController.navigate(AppDestination.History.route)
+                    testViewModel.consumeFinished()
+                }
+            }
+
             TestScreen(
                 sessionId = sessionId,
-                onFinishTestClick = { navController.navigate(AppDestination.Result.route) },
+                uiState = testUiState,
+                onFinishTestClick = { testViewModel.finishTest(sessionId) },
                 onBackToHomeClick = { navController.navigate(AppDestination.CandidateHome.route) },
             )
         }
@@ -144,13 +157,21 @@ fun AppNavHost(
             } else {
                 AppDestination.CandidateHome.route
             }
+            val historyViewModel: HistoryViewModel = hiltViewModel()
+            val historyUiState by historyViewModel.uiState.collectAsState()
+
+            LaunchedEffect(authenticatedRole) {
+                historyViewModel.load(authenticatedRole)
+            }
 
             HistoryScreen(
+                uiState = historyUiState,
                 onBackToHomeClick = {
                     navController.navigate(homeRoute) {
                         launchSingleTop = true
                     }
                 },
+                onRetryClick = { historyViewModel.load(authenticatedRole) },
             )
         }
 

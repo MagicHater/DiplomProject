@@ -37,3 +37,25 @@ data class SessionQuestionOptionDto(
     @SerialName("order") val order: Int,
     @SerialName("text") val text: String,
 )
+
+@Serializable
+data class MyResultListItemResponseDto(
+    @SerialName("sessionId") val sessionId: String,
+    @SerialName("completedAt") val completedAt: String,
+    @SerialName("summary") val summary: String,
+    @SerialName("scores") val scores: ScaleScoresDto,
+)
+
+@Serializable
+data class ScaleScoresDto(
+    @SerialName("attention") val attention: Int,
+    @SerialName("stressResistance") val stressResistance: Int,
+    @SerialName("responsibility") val responsibility: Int,
+    @SerialName("adaptability") val adaptability: Int,
+    @SerialName("decisionSpeedAccuracy") val decisionSpeedAccuracy: Int,
+)
+
+@Serializable
+data class FinishSessionResponseDto(
+    @SerialName("summary") val summary: String,
+)
