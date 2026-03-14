@@ -5,28 +5,35 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class LoginRequestDto(
-    @SerialName("login") val login: String,
+    @SerialName("email") val email: String,
     @SerialName("password") val password: String,
 )
 
 @Serializable
 data class RegisterRequestDto(
-    @SerialName("name") val name: String,
-    @SerialName("emailOrLogin") val emailOrLogin: String,
+    @SerialName("fullName") val fullName: String,
+    @SerialName("email") val email: String,
     @SerialName("password") val password: String,
     @SerialName("role") val role: String,
 )
 
 @Serializable
-data class AuthResponseDto(
+data class LoginResponseDto(
     @SerialName("token") val token: String,
-    @SerialName("user") val user: MeResponseDto,
+)
+
+@Serializable
+data class RegisterResponseDto(
+    @SerialName("id") val id: String,
+    @SerialName("fullName") val fullName: String,
+    @SerialName("email") val email: String,
+    @SerialName("role") val role: String,
 )
 
 @Serializable
 data class MeResponseDto(
     @SerialName("id") val id: String,
-    @SerialName("name") val name: String,
+    @SerialName("fullName") val fullName: String,
     @SerialName("email") val email: String,
     @SerialName("role") val role: String,
 )

@@ -65,7 +65,7 @@ fun RegisterScreen(
             value = uiState.emailOrLogin,
             onValueChange = viewModel::onEmailOrLoginChanged,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Email / Логин") },
+            label = { Text("Email") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,

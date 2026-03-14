@@ -40,14 +40,14 @@ class RegisterViewModel : ViewModel() {
 
         val emailOrLoginError = if (state.emailOrLogin.isBlank()) {
             isValid = false
-            "Введите email или логин"
+            "Введите email"
         } else {
             null
         }
 
-        val passwordError = if (state.password.length < 6) {
+        val passwordError = if (state.password.length < 8) {
             isValid = false
-            "Пароль должен быть не короче 6 символов"
+            "Пароль должен быть не короче 8 символов"
         } else {
             null
         }

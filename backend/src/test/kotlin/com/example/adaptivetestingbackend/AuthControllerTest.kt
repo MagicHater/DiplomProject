@@ -71,6 +71,17 @@ class AuthControllerTest(
             }
     }
 
+
+    @Test
+    fun `me with invalid token returns unauthorized`() {
+        mockMvc.get("/auth/me") {
+            header("Authorization", "Bearer invalid-token")
+        }
+            .andExpect {
+                status { isUnauthorized() }
+            }
+    }
+
     @Test
     fun `login with wrong password returns unauthorized`() {
         val registerBody = mapOf(
