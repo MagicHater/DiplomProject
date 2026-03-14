@@ -1,6 +1,6 @@
 # Backend module
 
-## Run backend with PostgreSQL locally (WORKING RESET FLOW)
+## Run backend with PostgreSQL locally
 
 Запускать из корня репозитория (`.../DiplomProject`).
 
@@ -16,13 +16,25 @@
 ./backend/scripts/start-local-backend.sh
 ```
 
-Эти скрипты делают **полный reset локальной Postgres-среды** (для dev), чтобы убрать ошибку `SQL State 28P01` (или подключение не к тому инстансу Postgres на 5432):
-1. Останавливают compose-стек.
-2. Удаляют volume (сбрасывают старые креды/данные).
-3. Поднимают новый Postgres с `postgres/postgres`.
-4. Запускают backend с явными `DB_URL/DB_USERNAME/DB_PASSWORD`.
+По умолчанию скрипты **не удаляют Postgres volume**, поэтому зарегистрированные пользователи и другие данные сохраняются между перезапусками backend.
 
-> Важно: reset удаляет локальные данные в Postgres volume.
+Что делают скрипты по умолчанию:
+1. Останавливают compose-стек (без удаления volume).
+2. Поднимают Postgres с текущим volume на порту `5433`.
+3. Запускают backend с явными `DB_URL/DB_USERNAME/DB_PASSWORD`.
+
+Если нужен полный reset (удалить данные), запускай скрипт с `RESET_DB=1`.
+
+Linux/macOS/Git Bash:
+```bash
+RESET_DB=1 ./backend/scripts/start-local-backend.sh
+```
+
+PowerShell:
+```powershell
+$env:RESET_DB = "1"
+./backend/scripts/start-local-backend.ps1
+```
 
 ### Почему порт 5433
 
@@ -30,7 +42,7 @@
 
 ## Why it failed before
 
-Ошибка `SQL State 28P01` (или подключение не к тому инстансу Postgres на 5432) означает, что пароль пользователя `postgres` в уже существующей БД не совпадал с тем, что backend пытается использовать. У Postgres пароль задаётся при первой инициализации volume, потом простая смена env уже не применится.
+Ошибка `SQL State 28P01` (или подключение не к тому инстансу Postgres на 5432) означает, что пароль пользователя `postgres` в уже существующей БД не совпадал с тем, что backend пытается использовать. У Postgres пароль задаётся при первой инициализации volume, потом простая смена env уже не применится. Для этого случая можно сделать разовый запуск с `RESET_DB=1`.
 
 ## Manual commands (if needed)
 

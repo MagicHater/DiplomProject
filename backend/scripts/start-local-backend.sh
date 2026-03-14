@@ -7,14 +7,19 @@ cd "$ROOT_DIR"
 DB_URL="jdbc:postgresql://localhost:5433/adaptive_testing"
 DB_USERNAME="postgres"
 DB_PASSWORD="postgres"
+RESET_DB="${RESET_DB:-0}"
 
-echo "[1/5] Stopping compose stack (if exists)..."
+echo "[1/4] Stopping compose stack (if exists)..."
 docker compose -f backend/docker-compose.yml down --remove-orphans >/dev/null 2>&1 || true
 
-echo "[2/5] Removing compose volumes to reset Postgres credentials/data..."
-docker compose -f backend/docker-compose.yml down -v --remove-orphans >/dev/null 2>&1 || true
+if [[ "$RESET_DB" == "1" ]]; then
+  echo "[2/4] RESET_DB=1 -> removing compose volumes (this deletes local data)..."
+  docker compose -f backend/docker-compose.yml down -v --remove-orphans >/dev/null 2>&1 || true
+else
+  echo "[2/4] Keeping existing Postgres volume (set RESET_DB=1 for full reset)."
+fi
 
-echo "[3/5] Starting fresh Postgres on host port 5433..."
+echo "[3/4] Starting Postgres on host port 5433..."
 docker compose -f backend/docker-compose.yml up -d postgres
 
 container_id="$(docker compose -f backend/docker-compose.yml ps -q postgres)"
@@ -23,7 +28,7 @@ if [[ -z "$container_id" ]]; then
   exit 1
 fi
 
-echo "[4/5] Waiting for Postgres health..."
+echo "[4/4] Waiting for Postgres health..."
 for i in {1..30}; do
   status="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_id")"
   if [[ "$status" == "healthy" || "$status" == "running" ]]; then
@@ -40,6 +45,6 @@ if [[ "$final_status" != "healthy" && "$final_status" != "running" ]]; then
   exit 1
 fi
 
-echo "[5/5] Starting backend with explicit DB credentials..."
+echo "[run] Starting backend with explicit DB credentials..."
 DB_URL="$DB_URL" DB_USERNAME="$DB_USERNAME" DB_PASSWORD="$DB_PASSWORD" \
   ./gradlew :backend:bootRun
