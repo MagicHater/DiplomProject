@@ -2,13 +2,18 @@ package com.example.adaptivetestingbackend.service.testsession
 
 import com.example.adaptivetestingbackend.dto.testsession.CreateTestSessionResponse
 import com.example.adaptivetestingbackend.dto.testsession.NextQuestionResponse
+import com.example.adaptivetestingbackend.dto.testsession.SessionProgressDto
 import com.example.adaptivetestingbackend.dto.testsession.SessionQuestionDto
 import com.example.adaptivetestingbackend.dto.testsession.SessionQuestionOptionDto
+import com.example.adaptivetestingbackend.dto.testsession.SubmitAnswerRequest
+import com.example.adaptivetestingbackend.dto.testsession.SubmitAnswerResponse
+import com.example.adaptivetestingbackend.entity.AnswerEntity
 import com.example.adaptivetestingbackend.entity.QuestionSnapshotEntity
 import com.example.adaptivetestingbackend.entity.RoleName
 import com.example.adaptivetestingbackend.entity.TestSessionEntity
 import com.example.adaptivetestingbackend.entity.TestSessionStatus
 import com.example.adaptivetestingbackend.entity.UserEntity
+import com.example.adaptivetestingbackend.repository.AnswerRepository
 import com.example.adaptivetestingbackend.repository.QuestionOptionRepository
 import com.example.adaptivetestingbackend.repository.QuestionRepository
 import com.example.adaptivetestingbackend.repository.QuestionSnapshotRepository
@@ -28,6 +33,8 @@ class TestSessionService(
     private val questionRepository: QuestionRepository,
     private val questionOptionRepository: QuestionOptionRepository,
     private val questionSnapshotRepository: QuestionSnapshotRepository,
+    private val answerRepository: AnswerRepository,
+    private val adaptiveSessionStateService: AdaptiveSessionStateService,
 ) {
     @Transactional
     fun createSession(userEmail: String): CreateTestSessionResponse {
@@ -108,6 +115,79 @@ class TestSessionService(
                 text = snapshot.questionText,
                 difficulty = snapshot.difficulty,
                 options = optionSnapshots,
+            ),
+        )
+    }
+
+    @Transactional
+    fun submitAnswer(sessionId: UUID, userEmail: String, request: SubmitAnswerRequest): SubmitAnswerResponse {
+        val user = getCandidateUser(userEmail)
+        val session = testSessionRepository.findById(sessionId)
+            .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Test session not found") }
+
+        ensureSessionOwner(session, user)
+
+        if (session.status == TestSessionStatus.COMPLETED || session.status == TestSessionStatus.CANCELLED) {
+            throw ResponseStatusException(HttpStatus.CONFLICT, "Cannot answer in completed or cancelled session")
+        }
+
+        val snapshotId = request.snapshotId
+            ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "snapshotId is required")
+        val selectedOptionId = request.selectedOptionId
+            ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "selectedOptionId is required")
+
+        val snapshot = questionSnapshotRepository.findByIdAndSessionId(snapshotId, sessionId)
+            ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Question snapshot was not issued in this session")
+
+        if (answerRepository.existsByQuestionSnapshotId(snapshot.id)) {
+            throw ResponseStatusException(HttpStatus.CONFLICT, "Question already answered")
+        }
+
+        val questionId = snapshot.question?.id
+            ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Snapshot has no source question")
+
+        val selectedOption = questionOptionRepository.findById(selectedOptionId)
+            .orElseThrow { ResponseStatusException(HttpStatus.BAD_REQUEST, "Selected option not found") }
+
+        if (selectedOption.question.id != questionId) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Selected option does not belong to snapshot question")
+        }
+
+        answerRepository.save(
+            AnswerEntity(
+                session = session,
+                questionSnapshot = snapshot,
+                selectedOption = selectedOption,
+                answerValue = selectedOption.contributionValue,
+            ),
+        )
+
+        val previousState = adaptiveSessionStateService.readState(session.adaptiveStateJson)
+        val updatedState = adaptiveSessionStateService.applyAnswer(
+            currentState = previousState,
+            snapshot = snapshot,
+            answerValue = selectedOption.contributionValue,
+        )
+
+        session.adaptiveStateJson = adaptiveSessionStateService.writeState(updatedState)
+        session.updatedAt = OffsetDateTime.now()
+        testSessionRepository.save(session)
+
+        val totalAvailableQuestions = questionRepository.countByIsActiveTrue()
+        val issuedQuestions = questionSnapshotRepository.findBySessionIdOrderByQuestionOrderAsc(sessionId).size
+
+        return SubmitAnswerResponse(
+            success = true,
+            sessionId = session.id,
+            sessionStatus = session.status.dbValue,
+            canContinue = session.status == TestSessionStatus.IN_PROGRESS && updatedState.answeredQuestions < totalAvailableQuestions,
+            progress = SessionProgressDto(
+                answeredQuestions = updatedState.answeredQuestions,
+                issuedQuestions = issuedQuestions,
+                totalAvailableQuestions = totalAvailableQuestions,
+                completionPercent = if (totalAvailableQuestions == 0) 0 else (updatedState.answeredQuestions * 100) / totalAvailableQuestions,
+                cumulativeScore = updatedState.cumulativeScore,
+                scaleCoverage = updatedState.scaleCoverage,
             ),
         )
     }

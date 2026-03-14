@@ -25,22 +25,25 @@ class TestSessionEntity(
 
     @Convert(converter = TestSessionStatusConverter::class)
     @Column(nullable = false, length = 32)
-    val status: TestSessionStatus = TestSessionStatus.CREATED,
+    var status: TestSessionStatus = TestSessionStatus.CREATED,
 
     @Column(name = "created_at", nullable = false)
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
 
     @Column(name = "updated_at", nullable = false)
-    val updatedAt: OffsetDateTime = OffsetDateTime.now(),
+    var updatedAt: OffsetDateTime = OffsetDateTime.now(),
 
     @Column(name = "started_at")
     val startedAt: OffsetDateTime? = null,
 
     @Column(name = "completed_at")
-    val completedAt: OffsetDateTime? = null,
+    var completedAt: OffsetDateTime? = null,
 
     @Column(name = "cancelled_at")
-    val cancelledAt: OffsetDateTime? = null,
+    var cancelledAt: OffsetDateTime? = null,
+
+    @Column(name = "adaptive_state_json", nullable = false, columnDefinition = "TEXT")
+    var adaptiveStateJson: String = "{}",
 
     @OneToMany(mappedBy = "session")
     val questionSnapshots: MutableSet<QuestionSnapshotEntity> = mutableSetOf(),

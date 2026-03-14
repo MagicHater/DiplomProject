@@ -6,4 +6,6 @@ import java.util.UUID
 
 interface AnswerRepository : JpaRepository<AnswerEntity, UUID> {
     fun findBySessionId(sessionId: UUID): List<AnswerEntity>
+
+    fun existsByQuestionSnapshotId(questionSnapshotId: UUID): Boolean
 }
