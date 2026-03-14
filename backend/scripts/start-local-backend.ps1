@@ -6,17 +6,23 @@ Set-Location $rootDir
 $dbUrl = "jdbc:postgresql://localhost:5433/adaptive_testing"
 $dbUser = "postgres"
 $dbPass = "postgres"
+$resetDb = $env:RESET_DB
+if ([string]::IsNullOrWhiteSpace($resetDb)) { $resetDb = "0" }
 
-Write-Host "[1/5] Stopping compose stack (if exists)..."
+Write-Host "[1/4] Stopping compose stack (if exists)..."
 docker compose -f backend/docker-compose.yml down --remove-orphans | Out-Null
 
-Write-Host "[2/5] Removing compose volumes to reset Postgres credentials/data..."
-docker compose -f backend/docker-compose.yml down -v --remove-orphans | Out-Null
+if ($resetDb -eq "1") {
+  Write-Host "[2/4] RESET_DB=1 -> removing compose volumes (this deletes local data)..."
+  docker compose -f backend/docker-compose.yml down -v --remove-orphans | Out-Null
+} else {
+  Write-Host "[2/4] Keeping existing Postgres volume (set RESET_DB=1 for full reset)."
+}
 
-Write-Host "[3/5] Starting fresh Postgres on host port 5433..."
+Write-Host "[3/4] Starting Postgres on host port 5433..."
 docker compose -f backend/docker-compose.yml up -d postgres | Out-Null
 
-Write-Host "[4/5] Waiting for Postgres health..."
+Write-Host "[4/4] Waiting for Postgres health..."
 $healthy = $false
 for ($i = 0; $i -lt 30; $i++) {
   $json = docker compose -f backend/docker-compose.yml ps --format json postgres
@@ -33,7 +39,7 @@ if (-not $healthy) {
   exit 1
 }
 
-Write-Host "[5/5] Starting backend with explicit DB env..."
+Write-Host "[run] Starting backend with explicit DB env..."
 $env:DB_URL = $dbUrl
 $env:DB_USERNAME = $dbUser
 $env:DB_PASSWORD = $dbPass
