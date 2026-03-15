@@ -47,4 +47,5 @@ fi
 
 echo "[run] Starting backend with explicit DB credentials..."
 DB_URL="$DB_URL" DB_USERNAME="$DB_USERNAME" DB_PASSWORD="$DB_PASSWORD" \
+FLYWAY_URL="$DB_URL" FLYWAY_USER="$DB_USERNAME" FLYWAY_PASSWORD="$DB_PASSWORD" \
   ./gradlew :backend:bootRun
