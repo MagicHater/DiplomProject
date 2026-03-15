@@ -14,6 +14,8 @@ echo "[meta] start-local-backend.sh v2 (DB+FLYWAY hard-sync)"
 
 echo "[meta] start-local-backend.sh v2 (DB+FLYWAY hard-sync)"
 
+echo "[meta] start-local-backend.sh v2 (DB+FLYWAY hard-sync)"
+
 echo "[1/4] Stopping compose stack (if exists)..."
 docker compose -f backend/docker-compose.yml down --remove-orphans >/dev/null 2>&1 || true
 
@@ -54,16 +56,14 @@ echo "[fix] Enforcing postgres user password inside container..."
 docker compose -f backend/docker-compose.yml exec -T postgres \
   psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD '$DB_PASSWORD';" >/dev/null
 
-echo "[check] Verifying TCP login via host port 5433..."
+echo "[check] Verifying TCP login inside postgres container (127.0.0.1:5432)..."
+docker compose -f backend/docker-compose.yml exec -T -e PGPASSWORD="$DB_PASSWORD" postgres \
+  psql -h 127.0.0.1 -U "$DB_USERNAME" -d adaptive_testing -c "select 1" >/dev/null
+
+echo "[check] Optional host-path probe (host.docker.internal:5433)..."
 if ! docker run --rm -e PGPASSWORD="$DB_PASSWORD" postgres:16 \
   psql -h host.docker.internal -p 5433 -U "$DB_USERNAME" -d adaptive_testing -c "select 1" >/dev/null; then
-  if [[ "$RESET_DB" != "1" && "$RETRIED_ON_AUTH_FAIL" != "1" ]]; then
-    echo "[warn] Host TCP auth check failed. Retrying once with RESET_DB=1 (fresh volume)..."
-    RESET_DB=1 RETRIED_ON_AUTH_FAIL=1 "$0"
-    exit $?
-  fi
-  echo "Host TCP check failed after retry."
-  exit 1
+  echo "[warn] Host-path probe failed on this machine; continuing (backend still uses localhost:5433)."
 fi
 
 echo "[run] Starting backend with explicit DB credentials..."

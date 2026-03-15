@@ -120,8 +120,8 @@ cd DiplomProject
 
 9. Перезапустите Docker Desktop после очистки env и повторите запуск из нового PowerShell-окна.
    - В новом скрипте при старте должна быть строка: `[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)`.
-   - Новый скрипт также делает `[check] Verifying TCP login via host port 5433...` и должен пройти этот шаг до `bootRun`.
-   - Если TCP auth-check не проходит, скрипт автоматически повторит запуск один раз с `RESET_DB=1`.
+   - Новый скрипт делает обязательный TCP-check внутри контейнера (`127.0.0.1:5432`).
+   - host-path probe (`host.docker.internal:5433`) теперь warning-only: на некоторых Windows-конфигах он может падать, даже если backend затем стартует.
 
 10. Если проблема остаётся, принудительно переустановите пароль `postgres` внутри контейнера и проверьте доступ с хоста:
    - `docker compose -f backend/docker-compose.yml exec postgres psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD 'postgres';"`

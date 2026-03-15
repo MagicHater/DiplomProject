@@ -21,6 +21,8 @@ Write-Host "[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)"
 
 Write-Host "[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)"
 
+Write-Host "[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)"
+
 Write-Host "[1/4] Stopping compose stack (if exists)..."
 docker compose -f backend/docker-compose.yml down --remove-orphans | Out-Null
 Assert-LastExitCode "docker compose down"
@@ -59,18 +61,16 @@ docker compose -f backend/docker-compose.yml exec -T postgres `
   psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD '$dbPass';" | Out-Null
 Assert-LastExitCode "ALTER USER postgres"
 
-Write-Host "[check] Verifying TCP login via host port 5433..."
+Write-Host "[check] Verifying TCP login inside postgres container (127.0.0.1:5432)..."
+docker compose -f backend/docker-compose.yml exec -T -e PGPASSWORD=$dbPass postgres `
+  psql -h 127.0.0.1 -U $dbUser -d adaptive_testing -c "select 1" | Out-Null
+Assert-LastExitCode "in-container TCP check"
+
+Write-Host "[check] Optional host-path probe (host.docker.internal:5433)..."
 docker run --rm -e PGPASSWORD=$dbPass postgres:16 `
   psql -h host.docker.internal -p 5433 -U $dbUser -d adaptive_testing -c "select 1" | Out-Null
 if ($LASTEXITCODE -ne 0) {
-  if ($resetDb -ne "1" -and $retriedOnAuthFail -ne "1") {
-    Write-Warning "Host TCP auth check failed. Retrying once with RESET_DB=1 (fresh volume)..."
-    $env:RESET_DB = "1"
-    $env:RETRIED_ON_AUTH_FAIL = "1"
-    & $PSCommandPath
-    exit $LASTEXITCODE
-  }
-  Assert-LastExitCode "host TCP check (postgres:16 -> localhost:5433)"
+  Write-Warning "Host-path probe failed on this machine; continuing (backend still uses localhost:5433)."
 }
 
 Write-Host "[run] Starting backend with explicit DB env..."
