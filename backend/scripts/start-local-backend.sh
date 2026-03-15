@@ -45,6 +45,10 @@ if [[ "$final_status" != "healthy" && "$final_status" != "running" ]]; then
   exit 1
 fi
 
+echo "[fix] Enforcing postgres user password inside container..."
+docker compose -f backend/docker-compose.yml exec -T postgres \
+  psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD '$DB_PASSWORD';" >/dev/null
+
 echo "[run] Starting backend with explicit DB credentials..."
 DB_URL="$DB_URL" DB_USERNAME="$DB_USERNAME" DB_PASSWORD="$DB_PASSWORD" \
 FLYWAY_URL="$DB_URL" FLYWAY_USER="$DB_USERNAME" FLYWAY_PASSWORD="$DB_PASSWORD" \
