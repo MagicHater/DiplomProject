@@ -21,6 +21,9 @@ echo "[meta] start-local-backend.sh v2 (DB+FLYWAY hard-sync)"
 echo "[meta] start-local-backend.sh v3 (DB+FLYWAY hard-sync)"
 echo "[meta] git branch: $(git rev-parse --abbrev-ref HEAD), commit: $(git rev-parse --short HEAD), RESET_DB=$RESET_DB"
 
+echo "[meta] start-local-backend.sh v3 (DB+FLYWAY hard-sync)"
+echo "[meta] git branch: $(git rev-parse --abbrev-ref HEAD), commit: $(git rev-parse --short HEAD), RESET_DB=$RESET_DB"
+
 echo "[1/4] Stopping compose stack (if exists)..."
 docker compose -f backend/docker-compose.yml down --remove-orphans >/dev/null 2>&1 || true
 

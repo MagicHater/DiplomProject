@@ -28,6 +28,9 @@ Write-Host "[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)"
 Write-Host "[meta] start-local-backend.ps1 v3 (DB+FLYWAY hard-sync)"
 Write-Host "[meta] git branch: $(git rev-parse --abbrev-ref HEAD), commit: $(git rev-parse --short HEAD), RESET_DB=$resetDb"
 
+Write-Host "[meta] start-local-backend.ps1 v3 (DB+FLYWAY hard-sync)"
+Write-Host "[meta] git branch: $(git rev-parse --abbrev-ref HEAD), commit: $(git rev-parse --short HEAD), RESET_DB=$resetDb"
+
 Write-Host "[1/4] Stopping compose stack (if exists)..."
 docker compose -f backend/docker-compose.yml down --remove-orphans | Out-Null
 Assert-LastExitCode "docker compose down"
@@ -65,6 +68,11 @@ Write-Host "[fix] Enforcing postgres user password inside container..."
 docker compose -f backend/docker-compose.yml exec -T postgres `
   psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD '$dbPass';" | Out-Null
 Assert-LastExitCode "ALTER USER postgres"
+
+Write-Host "[fix] Forcing pg_hba host auth method to trust..."
+docker compose -f backend/docker-compose.yml exec -T postgres `
+  sh -lc "sed -i 's/scram-sha-256/trust/g' \"\$PGDATA/pg_hba.conf\" && psql -U postgres -d postgres -c 'SELECT pg_reload_conf();'" | Out-Null
+Assert-LastExitCode "force pg_hba trust + reload"
 
 Write-Host "[check] Verifying TCP login inside postgres container (127.0.0.1:5432)..."
 docker compose -f backend/docker-compose.yml exec -T -e PGPASSWORD=$dbPass postgres `
