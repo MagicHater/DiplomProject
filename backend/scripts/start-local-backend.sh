@@ -51,6 +51,10 @@ echo "[fix] Enforcing postgres user password inside container..."
 docker compose -f backend/docker-compose.yml exec -T postgres \
   psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD '$DB_PASSWORD';" >/dev/null
 
+echo "[check] Verifying TCP login via host port 5433..."
+docker run --rm -e PGPASSWORD="$DB_PASSWORD" postgres:16 \
+  psql -h host.docker.internal -p 5433 -U "$DB_USERNAME" -d adaptive_testing -c "select 1" >/dev/null
+
 echo "[run] Starting backend with explicit DB credentials..."
 # Neutralize conflicting Spring env vars from shell/session.
 unset SPRING_DATASOURCE_URL SPRING_DATASOURCE_USERNAME SPRING_DATASOURCE_PASSWORD
@@ -59,4 +63,4 @@ unset SPRING_APPLICATION_JSON
 
 DB_URL="$DB_URL" DB_USERNAME="$DB_USERNAME" DB_PASSWORD="$DB_PASSWORD" \
 FLYWAY_URL="$DB_URL" FLYWAY_USER="$DB_USERNAME" FLYWAY_PASSWORD="$DB_PASSWORD" \
-  ./gradlew :backend:bootRun --no-daemon
+  ./gradlew :backend:bootRun --no-daemon --args="--spring.datasource.url=$DB_URL --spring.datasource.username=$DB_USERNAME --spring.datasource.password=$DB_PASSWORD --spring.flyway.url=$DB_URL --spring.flyway.user=$DB_USERNAME --spring.flyway.password=$DB_PASSWORD"

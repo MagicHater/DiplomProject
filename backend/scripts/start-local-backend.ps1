@@ -55,6 +55,11 @@ docker compose -f backend/docker-compose.yml exec -T postgres `
   psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD '$dbPass';" | Out-Null
 Assert-LastExitCode "ALTER USER postgres"
 
+Write-Host "[check] Verifying TCP login via host port 5433..."
+docker run --rm -e PGPASSWORD=$dbPass postgres:16 `
+  psql -h host.docker.internal -p 5433 -U $dbUser -d adaptive_testing -c "select 1" | Out-Null
+Assert-LastExitCode "host TCP check (postgres:16 -> localhost:5433)"
+
 Write-Host "[run] Starting backend with explicit DB env..."
 $env:DB_URL = $dbUrl
 $env:DB_USERNAME = $dbUser
@@ -72,4 +77,4 @@ Remove-Item Env:SPRING_FLYWAY_USER -ErrorAction SilentlyContinue
 Remove-Item Env:SPRING_FLYWAY_PASSWORD -ErrorAction SilentlyContinue
 Remove-Item Env:SPRING_APPLICATION_JSON -ErrorAction SilentlyContinue
 
-./gradlew :backend:bootRun --no-daemon
+./gradlew :backend:bootRun --no-daemon --args="--spring.datasource.url=$dbUrl --spring.datasource.username=$dbUser --spring.datasource.password=$dbPass --spring.flyway.url=$dbUrl --spring.flyway.user=$dbUser --spring.flyway.password=$dbPass"
