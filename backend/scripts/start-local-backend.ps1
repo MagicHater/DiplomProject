@@ -14,6 +14,10 @@ $dbUser = "postgres"
 $dbPass = "postgres"
 $resetDb = $env:RESET_DB
 if ([string]::IsNullOrWhiteSpace($resetDb)) { $resetDb = "0" }
+$retriedOnAuthFail = $env:RETRIED_ON_AUTH_FAIL
+if ([string]::IsNullOrWhiteSpace($retriedOnAuthFail)) { $retriedOnAuthFail = "0" }
+
+Write-Host "[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)"
 
 Write-Host "[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)"
 
@@ -58,7 +62,16 @@ Assert-LastExitCode "ALTER USER postgres"
 Write-Host "[check] Verifying TCP login via host port 5433..."
 docker run --rm -e PGPASSWORD=$dbPass postgres:16 `
   psql -h host.docker.internal -p 5433 -U $dbUser -d adaptive_testing -c "select 1" | Out-Null
-Assert-LastExitCode "host TCP check (postgres:16 -> localhost:5433)"
+if ($LASTEXITCODE -ne 0) {
+  if ($resetDb -ne "1" -and $retriedOnAuthFail -ne "1") {
+    Write-Warning "Host TCP auth check failed. Retrying once with RESET_DB=1 (fresh volume)..."
+    $env:RESET_DB = "1"
+    $env:RETRIED_ON_AUTH_FAIL = "1"
+    & $PSCommandPath
+    exit $LASTEXITCODE
+  }
+  Assert-LastExitCode "host TCP check (postgres:16 -> localhost:5433)"
+}
 
 Write-Host "[run] Starting backend with explicit DB env..."
 $env:DB_URL = $dbUrl
