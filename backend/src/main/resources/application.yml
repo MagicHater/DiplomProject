@@ -18,6 +18,9 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    url: ${FLYWAY_URL:${DB_URL:jdbc:postgresql://localhost:5432/adaptive_testing}}
+    user: ${FLYWAY_USER:${DB_USERNAME:postgres}}
+    password: ${FLYWAY_PASSWORD:${DB_PASSWORD:postgres}}
 
 server:
   port: ${SERVER_PORT:8080}
