@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-DB_URL="jdbc:postgresql://localhost:5433/adaptive_testing"
+DB_URL="jdbc:postgresql://127.0.0.1:5433/adaptive_testing"
 DB_USERNAME="postgres"
 DB_PASSWORD="postgres"
 RESET_DB="${RESET_DB:-0}"
@@ -17,6 +17,9 @@ echo "[meta] start-local-backend.sh v2 (DB+FLYWAY hard-sync)"
 echo "[meta] start-local-backend.sh v2 (DB+FLYWAY hard-sync)"
 
 echo "[meta] start-local-backend.sh v2 (DB+FLYWAY hard-sync)"
+
+echo "[meta] start-local-backend.sh v3 (DB+FLYWAY hard-sync)"
+echo "[meta] git branch: $(git rev-parse --abbrev-ref HEAD), commit: $(git rev-parse --short HEAD), RESET_DB=$RESET_DB"
 
 echo "[1/4] Stopping compose stack (if exists)..."
 docker compose -f backend/docker-compose.yml down --remove-orphans >/dev/null 2>&1 || true

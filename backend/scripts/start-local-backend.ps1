@@ -9,7 +9,7 @@ function Assert-LastExitCode([string]$step) {
 $rootDir = Resolve-Path (Join-Path $PSScriptRoot "../..")
 Set-Location $rootDir
 
-$dbUrl = "jdbc:postgresql://localhost:5433/adaptive_testing"
+$dbUrl = "jdbc:postgresql://127.0.0.1:5433/adaptive_testing"
 $dbUser = "postgres"
 $dbPass = "postgres"
 $resetDb = $env:RESET_DB
@@ -24,6 +24,9 @@ Write-Host "[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)"
 Write-Host "[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)"
 
 Write-Host "[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)"
+
+Write-Host "[meta] start-local-backend.ps1 v3 (DB+FLYWAY hard-sync)"
+Write-Host "[meta] git branch: $(git rev-parse --abbrev-ref HEAD), commit: $(git rev-parse --short HEAD), RESET_DB=$resetDb"
 
 Write-Host "[1/4] Stopping compose stack (if exists)..."
 docker compose -f backend/docker-compose.yml down --remove-orphans | Out-Null
