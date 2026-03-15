@@ -43,4 +43,7 @@ Write-Host "[run] Starting backend with explicit DB env..."
 $env:DB_URL = $dbUrl
 $env:DB_USERNAME = $dbUser
 $env:DB_PASSWORD = $dbPass
+$env:FLYWAY_URL = $dbUrl
+$env:FLYWAY_USER = $dbUser
+$env:FLYWAY_PASSWORD = $dbPass
 ./gradlew :backend:bootRun
