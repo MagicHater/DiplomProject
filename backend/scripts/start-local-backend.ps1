@@ -9,6 +9,8 @@ $dbPass = "postgres"
 $resetDb = $env:RESET_DB
 if ([string]::IsNullOrWhiteSpace($resetDb)) { $resetDb = "0" }
 
+Write-Host "[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)"
+
 Write-Host "[1/4] Stopping compose stack (if exists)..."
 docker compose -f backend/docker-compose.yml down --remove-orphans | Out-Null
 
@@ -50,4 +52,14 @@ $env:DB_PASSWORD = $dbPass
 $env:FLYWAY_URL = $dbUrl
 $env:FLYWAY_USER = $dbUser
 $env:FLYWAY_PASSWORD = $dbPass
-./gradlew :backend:bootRun
+
+# Neutralize conflicting Spring env vars from user/system scope.
+Remove-Item Env:SPRING_DATASOURCE_URL -ErrorAction SilentlyContinue
+Remove-Item Env:SPRING_DATASOURCE_USERNAME -ErrorAction SilentlyContinue
+Remove-Item Env:SPRING_DATASOURCE_PASSWORD -ErrorAction SilentlyContinue
+Remove-Item Env:SPRING_FLYWAY_URL -ErrorAction SilentlyContinue
+Remove-Item Env:SPRING_FLYWAY_USER -ErrorAction SilentlyContinue
+Remove-Item Env:SPRING_FLYWAY_PASSWORD -ErrorAction SilentlyContinue
+Remove-Item Env:SPRING_APPLICATION_JSON -ErrorAction SilentlyContinue
+
+./gradlew :backend:bootRun --no-daemon

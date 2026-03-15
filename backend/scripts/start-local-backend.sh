@@ -9,6 +9,8 @@ DB_USERNAME="postgres"
 DB_PASSWORD="postgres"
 RESET_DB="${RESET_DB:-0}"
 
+echo "[meta] start-local-backend.sh v2 (DB+FLYWAY hard-sync)"
+
 echo "[1/4] Stopping compose stack (if exists)..."
 docker compose -f backend/docker-compose.yml down --remove-orphans >/dev/null 2>&1 || true
 
@@ -50,6 +52,11 @@ docker compose -f backend/docker-compose.yml exec -T postgres \
   psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD '$DB_PASSWORD';" >/dev/null
 
 echo "[run] Starting backend with explicit DB credentials..."
+# Neutralize conflicting Spring env vars from shell/session.
+unset SPRING_DATASOURCE_URL SPRING_DATASOURCE_USERNAME SPRING_DATASOURCE_PASSWORD
+unset SPRING_FLYWAY_URL SPRING_FLYWAY_USER SPRING_FLYWAY_PASSWORD
+unset SPRING_APPLICATION_JSON
+
 DB_URL="$DB_URL" DB_USERNAME="$DB_USERNAME" DB_PASSWORD="$DB_PASSWORD" \
 FLYWAY_URL="$DB_URL" FLYWAY_USER="$DB_USERNAME" FLYWAY_PASSWORD="$DB_PASSWORD" \
-  ./gradlew :backend:bootRun
+  ./gradlew :backend:bootRun --no-daemon
