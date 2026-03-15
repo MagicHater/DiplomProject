@@ -4,10 +4,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-DB_URL="jdbc:postgresql://localhost:5433/adaptive_testing"
+DB_URL="jdbc:postgresql://127.0.0.1:5433/adaptive_testing"
 DB_USERNAME="postgres"
 DB_PASSWORD="postgres"
 RESET_DB="${RESET_DB:-0}"
+
+echo "[meta] start-local-backend.sh v3 (DB+FLYWAY hard-sync)"
+echo "[meta] git branch: $(git rev-parse --abbrev-ref HEAD), commit: $(git rev-parse --short HEAD), RESET_DB=$RESET_DB"
 
 echo "[1/4] Stopping compose stack (if exists)..."
 docker compose -f backend/docker-compose.yml down --remove-orphans >/dev/null 2>&1 || true
@@ -45,6 +48,26 @@ if [[ "$final_status" != "healthy" && "$final_status" != "running" ]]; then
   exit 1
 fi
 
+echo "[fix] Enforcing postgres user password inside container..."
+docker compose -f backend/docker-compose.yml exec -T postgres \
+  psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD '$DB_PASSWORD';" >/dev/null
+
+echo "[check] Verifying TCP login inside postgres container (127.0.0.1:5432)..."
+docker compose -f backend/docker-compose.yml exec -T -e PGPASSWORD="$DB_PASSWORD" postgres \
+  psql -h 127.0.0.1 -U "$DB_USERNAME" -d adaptive_testing -c "select 1" >/dev/null
+
+echo "[check] Optional host-path probe (host.docker.internal:5433)..."
+if ! docker run --rm -e PGPASSWORD="$DB_PASSWORD" postgres:16 \
+  psql -h host.docker.internal -p 5433 -U "$DB_USERNAME" -d adaptive_testing -c "select 1" >/dev/null; then
+  echo "[warn] Host-path probe failed on this machine; continuing (backend still uses localhost:5433)."
+fi
+
 echo "[run] Starting backend with explicit DB credentials..."
+# Neutralize conflicting Spring env vars from shell/session.
+unset SPRING_DATASOURCE_URL SPRING_DATASOURCE_USERNAME SPRING_DATASOURCE_PASSWORD
+unset SPRING_FLYWAY_URL SPRING_FLYWAY_USER SPRING_FLYWAY_PASSWORD
+unset SPRING_APPLICATION_JSON
+
 DB_URL="$DB_URL" DB_USERNAME="$DB_USERNAME" DB_PASSWORD="$DB_PASSWORD" \
-  ./gradlew :backend:bootRun
+FLYWAY_URL="$DB_URL" FLYWAY_USER="$DB_USERNAME" FLYWAY_PASSWORD="$DB_PASSWORD" \
+  ./gradlew :backend:bootRun --no-daemon --args="--spring.datasource.url=$DB_URL --spring.datasource.username=$DB_USERNAME --spring.datasource.password=$DB_PASSWORD --spring.flyway.url=$DB_URL --spring.flyway.user=$DB_USERNAME --spring.flyway.password=$DB_PASSWORD"
