@@ -8,6 +8,18 @@ DB_URL="jdbc:postgresql://127.0.0.1:5433/adaptive_testing"
 DB_USERNAME="postgres"
 DB_PASSWORD="postgres"
 RESET_DB="${RESET_DB:-0}"
+RETRIED_ON_AUTH_FAIL="${RETRIED_ON_AUTH_FAIL:-0}"
+
+echo "[meta] start-local-backend.sh v2 (DB+FLYWAY hard-sync)"
+
+echo "[meta] start-local-backend.sh v2 (DB+FLYWAY hard-sync)"
+
+echo "[meta] start-local-backend.sh v2 (DB+FLYWAY hard-sync)"
+
+echo "[meta] start-local-backend.sh v2 (DB+FLYWAY hard-sync)"
+
+echo "[meta] start-local-backend.sh v3 (DB+FLYWAY hard-sync)"
+echo "[meta] git branch: $(git rev-parse --abbrev-ref HEAD), commit: $(git rev-parse --short HEAD), RESET_DB=$RESET_DB"
 
 echo "[meta] start-local-backend.sh v3 (DB+FLYWAY hard-sync)"
 echo "[meta] git branch: $(git rev-parse --abbrev-ref HEAD), commit: $(git rev-parse --short HEAD), RESET_DB=$RESET_DB"
