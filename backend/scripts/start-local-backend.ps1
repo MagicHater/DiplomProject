@@ -14,6 +14,14 @@ $dbUser = "postgres"
 $dbPass = "postgres"
 $resetDb = $env:RESET_DB
 if ([string]::IsNullOrWhiteSpace($resetDb)) { $resetDb = "0" }
+$retriedOnAuthFail = $env:RETRIED_ON_AUTH_FAIL
+if ([string]::IsNullOrWhiteSpace($retriedOnAuthFail)) { $retriedOnAuthFail = "0" }
+
+Write-Host "[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)"
+
+Write-Host "[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)"
+
+Write-Host "[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)"
 
 Write-Host "[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)"
 
