@@ -39,8 +39,15 @@ if (-not $healthy) {
   exit 1
 }
 
+Write-Host "[fix] Enforcing postgres user password inside container..."
+docker compose -f backend/docker-compose.yml exec -T postgres `
+  psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD '$dbPass';" | Out-Null
+
 Write-Host "[run] Starting backend with explicit DB env..."
 $env:DB_URL = $dbUrl
 $env:DB_USERNAME = $dbUser
 $env:DB_PASSWORD = $dbPass
+$env:FLYWAY_URL = $dbUrl
+$env:FLYWAY_USER = $dbUser
+$env:FLYWAY_PASSWORD = $dbPass
 ./gradlew :backend:bootRun
