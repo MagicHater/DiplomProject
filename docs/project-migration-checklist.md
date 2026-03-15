@@ -31,6 +31,7 @@ cd DiplomProject
 2. Создайте/проверьте локальную конфигурацию (`application-local.yml`, переменные среды, секреты JWT и доступ к БД).
 3. Поднимите базу (если используете docker-compose):
    - `docker compose up -d`
+   - при первом запуске на новой машине рекомендуется один раз выполнить с очисткой volume (`RESET_DB=1`), чтобы применились локальные правила auth из compose.
 4. Запустите backend:
    - Linux/macOS: `./gradlew bootRun`
    - Windows: `gradlew.bat bootRun`

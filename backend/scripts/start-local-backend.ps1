@@ -23,6 +23,8 @@ Write-Host "[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)"
 
 Write-Host "[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)"
 
+Write-Host "[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)"
+
 Write-Host "[1/4] Stopping compose stack (if exists)..."
 docker compose -f backend/docker-compose.yml down --remove-orphans | Out-Null
 Assert-LastExitCode "docker compose down"
