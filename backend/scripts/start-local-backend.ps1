@@ -1,5 +1,11 @@
 $ErrorActionPreference = "Stop"
 
+function Assert-LastExitCode([string]$step) {
+  if ($LASTEXITCODE -ne 0) {
+    throw "$step failed with exit code $LASTEXITCODE"
+  }
+}
+
 $rootDir = Resolve-Path (Join-Path $PSScriptRoot "../..")
 Set-Location $rootDir
 
@@ -13,16 +19,19 @@ Write-Host "[meta] start-local-backend.ps1 v2 (DB+FLYWAY hard-sync)"
 
 Write-Host "[1/4] Stopping compose stack (if exists)..."
 docker compose -f backend/docker-compose.yml down --remove-orphans | Out-Null
+Assert-LastExitCode "docker compose down"
 
 if ($resetDb -eq "1") {
   Write-Host "[2/4] RESET_DB=1 -> removing compose volumes (this deletes local data)..."
   docker compose -f backend/docker-compose.yml down -v --remove-orphans | Out-Null
+  Assert-LastExitCode "docker compose down -v"
 } else {
   Write-Host "[2/4] Keeping existing Postgres volume (set RESET_DB=1 for full reset)."
 }
 
 Write-Host "[3/4] Starting Postgres on host port 5433..."
 docker compose -f backend/docker-compose.yml up -d postgres | Out-Null
+Assert-LastExitCode "docker compose up -d postgres"
 
 Write-Host "[4/4] Waiting for Postgres health..."
 $healthy = $false
@@ -44,6 +53,7 @@ if (-not $healthy) {
 Write-Host "[fix] Enforcing postgres user password inside container..."
 docker compose -f backend/docker-compose.yml exec -T postgres `
   psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD '$dbPass';" | Out-Null
+Assert-LastExitCode "ALTER USER postgres"
 
 Write-Host "[run] Starting backend with explicit DB env..."
 $env:DB_URL = $dbUrl
