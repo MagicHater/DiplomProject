@@ -12,6 +12,8 @@ RETRIED_ON_AUTH_FAIL="${RETRIED_ON_AUTH_FAIL:-0}"
 
 echo "[meta] start-local-backend.sh v2 (DB+FLYWAY hard-sync)"
 
+echo "[meta] start-local-backend.sh v2 (DB+FLYWAY hard-sync)"
+
 echo "[1/4] Stopping compose stack (if exists)..."
 docker compose -f backend/docker-compose.yml down --remove-orphans >/dev/null 2>&1 || true
 
