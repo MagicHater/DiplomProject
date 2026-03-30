@@ -89,3 +89,23 @@ docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Ports}}"
 ## API contracts
 
 - Controller API contract: `backend/docs/controller-api-contract.md`
+
+
+## Flyway checksum mismatch after edited migration (local dev)
+
+If you changed an already-applied migration (for example `V2__adaptive_testing_model.sql`) and got:
+
+```
+Migration checksum mismatch for migration version 2
+```
+
+use a **full local DB reset**. This removes local Postgres data and lets Flyway apply migrations again from an empty database.
+
+PowerShell (Windows):
+
+```powershell
+$env:RESET_DB = "1"
+./backend/scripts/start-local-backend.ps1
+```
+
+After the reset run, you can return to normal launches (without `RESET_DB`) and data will persist as before.
