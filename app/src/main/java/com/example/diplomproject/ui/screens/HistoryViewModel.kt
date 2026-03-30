@@ -28,7 +28,7 @@ class HistoryViewModel @Inject constructor(
                     isLoading = false,
                     errorMessage = null,
                     items = emptyList(),
-                    infoMessage = "Для контроллера история кандидата пока не реализована.",
+                    infoMessage = "Выберите кандидата в кабинете экзаменатора для просмотра персональной истории.",
                 )
             }
             return
