@@ -159,7 +159,14 @@ fun TestQuestionScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             Text(
-                text = "Вопрос ${question.order}. Отвечено ${uiState.progress.answeredQuestions}",
+                text = formatQuestionCounterText(
+                    questionOrder = question.order,
+                    totalAvailableQuestions = uiState.progress.totalAvailableQuestions,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                text = "Отвечено ${uiState.progress.answeredQuestions}",
                 style = MaterialTheme.typography.bodySmall,
             )
             Text(text = question.text, style = MaterialTheme.typography.titleMedium)
@@ -193,6 +200,18 @@ fun TestQuestionScreen(
                 Text("Далее")
             }
         }
+    }
+}
+
+internal fun formatQuestionCounterText(
+    questionOrder: Int,
+    totalAvailableQuestions: Int,
+): String {
+    // We use backend question.order as a single source of truth; backend already sends 1-based numbering.
+    return if (totalAvailableQuestions > 0) {
+        "Вопрос $questionOrder из $totalAvailableQuestions"
+    } else {
+        "Вопрос $questionOrder"
     }
 }
 
