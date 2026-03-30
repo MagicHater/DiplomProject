@@ -1,51 +1,40 @@
 package com.example.diplomproject.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.diplomproject.domain.model.FinishedSessionResult
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
-
-@Composable
-private fun ScreenStub(
-    title: String,
-    actions: List<Pair<String, () -> Unit>>,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
-    ) {
-        Text(text = title, style = MaterialTheme.typography.headlineMedium)
-        actions.forEach { (label, onClick) ->
-            Button(onClick = onClick) {
-                Text(text = label)
-            }
-        }
-    }
-}
 
 @Composable
 fun CandidateHomeScreen(
@@ -55,46 +44,82 @@ fun CandidateHomeScreen(
     onHistoryClick: () -> Unit,
     onLogoutClick: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(text = "Кабинет кандидата", style = MaterialTheme.typography.headlineMedium)
-        Text(
-            text = "Пройдите адаптивный тест. После старта вы сразу получите первый вопрос.",
-            style = MaterialTheme.typography.bodyMedium,
-        )
-
-        uiState.errorMessage?.let {
-            Text(text = it, color = MaterialTheme.colorScheme.error)
-        }
-
-        Button(
-            onClick = onStartTestClick,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !uiState.isLoading,
+    AppScreenScaffold(title = "Кабинет кандидата") { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator()
-            } else {
-                Text("Начать тест")
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("Профессиональное психологическое тестирование", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = "Ответьте на вопросы, чтобы получить профиль с интерпретацией ключевых шкал.",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
             }
-        }
 
-        Button(onClick = onHistoryClick, modifier = Modifier.fillMaxWidth()) {
-            Text("История результатов")
-        }
+            uiState.errorMessage?.let { error ->
+                item {
+                    ErrorState(
+                        message = error,
+                        actionLabel = "Повторить",
+                        onActionClick = onStartTestClick,
+                    )
+                }
+            }
 
-        Button(onClick = onResultClick, modifier = Modifier.fillMaxWidth()) {
-            Text("Текущий результат (заглушка)")
-        }
+            item {
+                Button(
+                    onClick = onStartTestClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !uiState.isLoading,
+                ) {
+                    if (uiState.isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Text("Начать тестирование")
+                }
+            }
 
-        Spacer(modifier = Modifier.weight(1f))
-        TextButton(onClick = onLogoutClick, modifier = Modifier.fillMaxWidth()) {
-            Text("Выйти")
+            item {
+                OutlinedButton(onClick = onHistoryClick, modifier = Modifier.fillMaxWidth()) {
+                    Text("История результатов")
+                }
+            }
+
+            item {
+                TextButton(onClick = onResultClick, modifier = Modifier.fillMaxWidth()) {
+                    Text("Открыть последний результат")
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                    Text(
+                        text = "Результаты предназначены для рекомендаций и не являются медицинским диагнозом.",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
+            }
+
+            item {
+                TextButton(onClick = onLogoutClick, modifier = Modifier.fillMaxWidth()) {
+                    Text("Выйти из аккаунта")
+                }
+            }
         }
     }
 }
@@ -105,14 +130,38 @@ fun ControllerHomeScreen(
     onHistoryClick: () -> Unit,
     onLogoutClick: () -> Unit,
 ) {
-    ScreenStub(
-        title = "Кабинет контроллера",
-        actions = listOf(
-            "Открыть CandidateList" to onCandidateListClick,
-            "Открыть History" to onHistoryClick,
-            "Выйти" to onLogoutClick,
-        ),
-    )
+    AppScreenScaffold(title = "Кабинет экзаменатора") { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "Управляйте списком кандидатов и анализируйте результаты тестирования.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+
+            ActionCard(
+                title = "Список кандидатов",
+                subtitle = "Просмотр профилей и переход к детальной карточке кандидата",
+                onClick = onCandidateListClick,
+            )
+
+            ActionCard(
+                title = "История и результаты",
+                subtitle = "Сводка завершённых сессий и доступ к полным отчётам",
+                onClick = onHistoryClick,
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            TextButton(onClick = onLogoutClick, modifier = Modifier.fillMaxWidth()) {
+                Text("Выйти из аккаунта")
+            }
+        }
+    }
 }
 
 @Composable
@@ -122,82 +171,77 @@ fun TestQuestionScreen(
     onNextClick: () -> Unit,
     onRetryClick: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(text = "Прохождение теста", style = MaterialTheme.typography.headlineMedium)
-        Text(text = "Session: ${uiState.sessionId}", style = MaterialTheme.typography.bodySmall)
+    AppScreenScaffold(title = "Тестирование") { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            val question = uiState.question
 
-        if (uiState.isInitialLoading) {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        }
-
-        uiState.errorMessage?.let {
-            Text(text = it, color = MaterialTheme.colorScheme.error)
-            if (uiState.question == null) {
-                Button(onClick = onRetryClick, modifier = Modifier.fillMaxWidth()) {
-                    Text("Повторить")
+            if (question != null) {
+                val progress = if (uiState.progress.totalAvailableQuestions > 0) {
+                    (uiState.progress.answeredQuestions.toFloat() / uiState.progress.totalAvailableQuestions.toFloat())
+                        .coerceIn(0f, 1f)
+                } else {
+                    0f
                 }
+
+                Text(
+                    text = formatQuestionCounterText(
+                        questionOrder = question.order,
+                        totalAvailableQuestions = uiState.progress.totalAvailableQuestions,
+                    ),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+                Text(
+                    text = "Отвечено: ${uiState.progress.answeredQuestions}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
-        }
 
-        uiState.question?.let { question ->
-            val progress = if (uiState.progress.totalAvailableQuestions > 0) {
-                (uiState.progress.answeredQuestions.toFloat() / uiState.progress.totalAvailableQuestions.toFloat())
-                    .coerceIn(0f, 1f)
-            } else {
-                0f
+            if (uiState.isInitialLoading) {
+                LoadingState(message = "Загружаем вопрос...")
             }
 
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Text(
-                text = formatQuestionCounterText(
-                    questionOrder = question.order,
-                    totalAvailableQuestions = uiState.progress.totalAvailableQuestions,
-                ),
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Text(
-                text = "Отвечено ${uiState.progress.answeredQuestions}",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Text(text = question.text, style = MaterialTheme.typography.titleMedium)
+            uiState.errorMessage?.let { error ->
+                ErrorState(
+                    message = error,
+                    actionLabel = if (question == null) "Повторить загрузку" else "Повторить",
+                    onActionClick = onRetryClick,
+                )
+            }
 
-            question.options.sortedBy { it.order }.forEach { option ->
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Button(
-                        onClick = { onOptionSelected(option.optionId) },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !uiState.isBusy,
-                    ) {
-                        RadioButton(
+            if (question != null) {
+                Text(text = question.text, style = MaterialTheme.typography.titleLarge)
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    question.options.sortedBy { it.order }.forEach { option ->
+                        SelectableOptionCard(
+                            text = option.text,
                             selected = option.optionId == uiState.selectedOptionId,
-                            onClick = null,
+                            enabled = !uiState.isBusy,
+                            onClick = { onOptionSelected(option.optionId) },
                         )
-                        Text(option.text, modifier = Modifier.padding(start = 8.dp))
                     }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.weight(1f))
-        Button(
-            onClick = onNextClick,
-            enabled = uiState.selectedOptionId != null && !uiState.isBusy,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            if (uiState.isSubmitting || uiState.isFinishing) {
-                CircularProgressIndicator()
-            } else {
-                Text("Далее")
+            Spacer(modifier = Modifier.weight(1f))
+
+            Button(
+                onClick = onNextClick,
+                enabled = uiState.selectedOptionId != null && !uiState.isBusy,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (uiState.isSubmitting || uiState.isFinishing) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text("Ответить и продолжить")
             }
         }
     }
@@ -207,7 +251,6 @@ internal fun formatQuestionCounterText(
     questionOrder: Int,
     totalAvailableQuestions: Int,
 ): String {
-    // We use backend question.order as a single source of truth; backend already sends 1-based numbering.
     return if (totalAvailableQuestions > 0) {
         "Вопрос $questionOrder из $totalAvailableQuestions"
     } else {
@@ -222,43 +265,28 @@ fun ResultScreen(
     onHistoryClick: () -> Unit,
     onBackToCandidateHomeClick: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(text = "Результат", style = MaterialTheme.typography.headlineMedium)
-
-        when {
-            uiState.isLoading -> {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+    AppScreenScaffold(title = "Итоговый отчёт") { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            when {
+                uiState.isLoading -> LoadingState(message = "Загружаем результат...")
+                uiState.errorMessage != null -> ErrorState(uiState.errorMessage, "Повторить", onRetryClick)
+                uiState.emptyMessage != null -> EmptyState(uiState.emptyMessage)
+                uiState.result != null -> ResultContent(result = uiState.result, isChartPlaceholderVisible = uiState.isChartPlaceholderVisible)
             }
 
-            uiState.errorMessage != null -> {
-                Text(text = uiState.errorMessage, color = MaterialTheme.colorScheme.error)
-                Button(onClick = onRetryClick) {
-                    Text("Повторить")
-                }
+            Spacer(modifier = Modifier.weight(1f))
+            OutlinedButton(onClick = onHistoryClick, modifier = Modifier.fillMaxWidth()) {
+                Text("К истории результатов")
             }
-
-            uiState.emptyMessage != null -> {
-                Text(text = uiState.emptyMessage, style = MaterialTheme.typography.bodyMedium)
+            TextButton(onClick = onBackToCandidateHomeClick, modifier = Modifier.fillMaxWidth()) {
+                Text("В кабинет кандидата")
             }
-
-            uiState.result != null -> {
-                ResultContent(result = uiState.result, isChartPlaceholderVisible = uiState.isChartPlaceholderVisible)
-            }
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-        Button(onClick = onHistoryClick, modifier = Modifier.fillMaxWidth()) {
-            Text("Открыть History")
-        }
-        Button(onClick = onBackToCandidateHomeClick, modifier = Modifier.fillMaxWidth()) {
-            Text("Назад в CandidateHome")
         }
     }
 }
@@ -268,33 +296,57 @@ private fun ResultContent(
     result: FinishedSessionResult,
     isChartPlaceholderVisible: Boolean,
 ) {
-    Text(
-        text = "Дата/время: ${result.completedAt.formatIsoDateTime()}",
-        style = MaterialTheme.typography.bodySmall,
-    )
-
-    if (isChartPlaceholderVisible) {
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Radar chart будет добавлен на этом месте в следующих итерациях.",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(12.dp),
-            )
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("Дата прохождения", style = MaterialTheme.typography.labelLarge)
+            Text(result.completedAt.formatIsoDateTime(), style = MaterialTheme.typography.bodyMedium)
+            Text("Общий вывод", style = MaterialTheme.typography.labelLarge)
+            Text(result.overallSummary, style = MaterialTheme.typography.bodyMedium)
         }
     }
 
-    val scales = scaleItems(result.scores, result.interpretations)
-
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        item {
-            Text(text = "Summary", style = MaterialTheme.typography.titleMedium)
-            Text(text = result.overallSummary, style = MaterialTheme.typography.bodyMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = "Шкалы", style = MaterialTheme.typography.titleMedium)
+    if (isChartPlaceholderVisible) {
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text("Профиль шкал", style = MaterialTheme.typography.titleMedium)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("Визуализация профиля", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
         }
-        items(scales) { scale ->
+    }
+
+    SectionHeader(title = "Шкалы и интерпретации")
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        scaleItems(result.scores, result.interpretations).forEach { scale ->
             ScaleItemCard(item = scale)
         }
+    }
+
+    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Text(
+            text = "Итоговый профиль используется как рекомендательный инструмент и требует экспертной интерпретации.",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(16.dp),
+        )
     }
 }
 
@@ -305,71 +357,56 @@ fun HistoryScreen(
     onBackToHomeClick: () -> Unit,
     onRetryClick: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(text = "История результатов", style = MaterialTheme.typography.headlineMedium)
-
-        when {
-            uiState.isLoading -> {
-                CircularProgressIndicator()
-            }
-
-            uiState.errorMessage != null -> {
-                Text(text = uiState.errorMessage, color = MaterialTheme.colorScheme.error)
-                Button(onClick = onRetryClick) {
-                    Text("Повторить")
-                }
-            }
-
-            uiState.infoMessage != null -> {
-                Text(text = uiState.infoMessage, style = MaterialTheme.typography.bodyMedium)
-            }
-
-            else -> {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(uiState.items, key = { it.sessionId }) { item ->
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                Text(
-                                    text = item.completedAt.formatIsoDateTime(),
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                                Text(
-                                    text = item.summary,
-                                    style = MaterialTheme.typography.titleMedium,
-                                )
-                                compactScoreItems(item.scores).forEach { (title, value) ->
-                                    CompactScoreRow(title = title, value = value)
-                                }
-                                Button(
-                                    onClick = { onResultClick(item.sessionId) },
-                                    modifier = Modifier.fillMaxWidth(),
+    AppScreenScaffold(title = "История результатов") { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            when {
+                uiState.isLoading -> LoadingState(message = "Загружаем историю...")
+                uiState.errorMessage != null -> ErrorState(uiState.errorMessage, "Повторить", onRetryClick)
+                uiState.infoMessage != null -> EmptyState(uiState.infoMessage)
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        items(uiState.items, key = { it.sessionId }) { item ->
+                            Card(modifier = Modifier.fillMaxWidth()) {
+                                Column(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    Text("Открыть полный результат")
+                                    Text(item.completedAt.formatIsoDateTime(), style = MaterialTheme.typography.labelMedium)
+                                    Text(item.summary, style = MaterialTheme.typography.titleMedium)
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        compactScoreItems(item.scores).forEach { (title, value) ->
+                                            CompactScoreRow(title = title, value = value)
+                                        }
+                                    }
+                                    OutlinedButton(
+                                        onClick = { onResultClick(item.sessionId) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                    ) {
+                                        Text("Полный отчёт")
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
 
-        if (!uiState.items.any() || uiState.isLoading || uiState.errorMessage != null || uiState.infoMessage != null) {
-            Spacer(modifier = Modifier.weight(1f))
-        }
+            if (uiState.items.isEmpty()) {
+                Spacer(modifier = Modifier.weight(1f))
+            }
 
-        Button(onClick = onBackToHomeClick, modifier = Modifier.fillMaxWidth()) {
-            Text("Назад в домашний кабинет")
+            Button(onClick = onBackToHomeClick, modifier = Modifier.fillMaxWidth()) {
+                Text("Вернуться в кабинет")
+            }
         }
     }
 }
@@ -383,19 +420,83 @@ fun CandidateListScreen(
     onCandidateDetailsClick: () -> Unit,
     onBackToControllerHomeClick: () -> Unit,
 ) {
-    ScreenStub(
-        title = "CandidateListScreen",
-        actions = listOf(
-            "Открыть CandidateDetails" to onCandidateDetailsClick,
-            "Назад в ControllerHome" to onBackToControllerHomeClick,
-        ),
-    )
+    AppScreenScaffold(title = "Кандидаты", onBackClick = onBackToControllerHomeClick) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "Выберите кандидата для просмотра профиля и аналитики прохождений.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+
+            listOf(
+                "Иван Петров" to "3 завершённых сессии",
+                "Анна Смирнова" to "1 завершённая сессия",
+                "Дмитрий Волков" to "Сессии в обработке",
+            ).forEach { (name, status) ->
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(name, style = MaterialTheme.typography.titleMedium)
+                        Text(status, style = MaterialTheme.typography.bodySmall)
+                        OutlinedButton(onClick = onCandidateDetailsClick, modifier = Modifier.fillMaxWidth()) {
+                            Text("Открыть карточку")
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
 fun CandidateDetailsScreen(onBackToCandidateListClick: () -> Unit) {
-    ScreenStub(
-        title = "CandidateDetailsScreen",
-        actions = listOf("Назад к CandidateList" to onBackToCandidateListClick),
-    )
+    AppScreenScaffold(title = "Карточка кандидата", onBackClick = onBackToCandidateListClick) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text("Профиль кандидата", style = MaterialTheme.typography.titleMedium)
+                        Text("ФИО: Иван Петров", style = MaterialTheme.typography.bodyMedium)
+                        Text("Статус: активный участник", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("Результаты и сессии", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Динамика по шкалам, ключевые выводы и история прохождений отображаются в этом разделе.",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            }
+        }
+    }
 }

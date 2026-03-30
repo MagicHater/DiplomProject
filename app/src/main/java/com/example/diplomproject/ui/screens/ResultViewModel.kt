@@ -42,7 +42,7 @@ class ResultViewModel @Inject constructor(
                     isLoading = false,
                     result = null,
                     errorMessage = null,
-                    emptyMessage = "Не указан sessionId результата.",
+                    emptyMessage = "Не удалось определить результат для просмотра.",
                 )
             }
             return

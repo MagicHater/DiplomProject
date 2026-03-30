@@ -3,9 +3,12 @@ package com.example.diplomproject.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -41,94 +44,99 @@ fun RegisterScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(text = "Регистрация", style = MaterialTheme.typography.headlineMedium)
-
-        OutlinedTextField(
-            value = uiState.name,
-            onValueChange = viewModel::onNameChanged,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Имя") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-            isError = uiState.nameError != null,
-            supportingText = { uiState.nameError?.let { Text(it) } },
-        )
-
-        OutlinedTextField(
-            value = uiState.emailOrLogin,
-            onValueChange = viewModel::onEmailOrLoginChanged,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Email") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next,
-            ),
-            isError = uiState.emailOrLoginError != null,
-            supportingText = { uiState.emailOrLoginError?.let { Text(it) } },
-        )
-
-        OutlinedTextField(
-            value = uiState.password,
-            onValueChange = viewModel::onPasswordChanged,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Пароль") },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done,
-            ),
-            isError = uiState.passwordError != null,
-            supportingText = { uiState.passwordError?.let { Text(it) } },
-        )
-
-        uiState.authError?.let {
-            Text(text = it, color = MaterialTheme.colorScheme.error)
-        }
-
-        Text(
-            text = "Роль",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+    AppScreenScaffold(title = "Регистрация") { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            UserRole.entries.forEach { role ->
-                OutlinedButton(
-                    onClick = { viewModel.onRoleSelected(role) },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    val label = if (role == uiState.selectedRole) "✓ ${role.name}" else role.name
-                    Text(text = label)
+            OutlinedTextField(
+                value = uiState.name,
+                onValueChange = viewModel::onNameChanged,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Имя") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                isError = uiState.nameError != null,
+                supportingText = { uiState.nameError?.let { Text(it) } },
+            )
+
+            OutlinedTextField(
+                value = uiState.emailOrLogin,
+                onValueChange = viewModel::onEmailOrLoginChanged,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Email") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next,
+                ),
+                isError = uiState.emailOrLoginError != null,
+                supportingText = { uiState.emailOrLoginError?.let { Text(it) } },
+            )
+
+            OutlinedTextField(
+                value = uiState.password,
+                onValueChange = viewModel::onPasswordChanged,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Пароль") },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done,
+                ),
+                isError = uiState.passwordError != null,
+                supportingText = { uiState.passwordError?.let { Text(it) } },
+            )
+
+            uiState.authError?.let {
+                Text(text = it, color = MaterialTheme.colorScheme.error)
+            }
+
+            Text(
+                text = "Роль",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                UserRole.entries.forEach { role ->
+                    OutlinedButton(
+                        onClick = { viewModel.onRoleSelected(role) },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        val roleLabel = when (role) {
+                            UserRole.Candidate -> "Кандидат"
+                            UserRole.Controller -> "Экзаменатор"
+                        }
+                        val label = if (role == uiState.selectedRole) "✓ $roleLabel" else roleLabel
+                        Text(text = label)
+                    }
                 }
             }
-        }
 
-        Button(
-            onClick = viewModel::register,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !uiState.isLoading,
-        ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator()
-            } else {
+            Button(
+                onClick = viewModel::register,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !uiState.isLoading,
+            ) {
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
                 Text(text = "Зарегистрироваться")
             }
-        }
 
-        TextButton(onClick = onLoginClick) {
-            Text(text = "Уже есть аккаунт? Войти")
+            TextButton(onClick = onLoginClick) {
+                Text(text = "Уже есть аккаунт? Войти")
+            }
         }
     }
 }
