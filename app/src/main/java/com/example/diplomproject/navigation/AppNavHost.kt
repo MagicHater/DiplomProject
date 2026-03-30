@@ -135,7 +135,11 @@ fun AppNavHost(
                 ?.get<TestQuestion>("initialQuestion")
 
             LaunchedEffect(initialQuestion?.snapshotId) {
-                initialQuestion?.let(testViewModel::setInitialQuestion)
+                if (initialQuestion != null) {
+                    testViewModel.setInitialQuestion(initialQuestion)
+                } else {
+                    testViewModel.retryLoad()
+                }
             }
 
             LaunchedEffect(testUiState.navigateToResult) {

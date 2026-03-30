@@ -33,15 +33,18 @@ class TestViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(TestUiState(sessionId = sessionId))
     val uiState: StateFlow<TestUiState> = _uiState.asStateFlow()
 
-    init {
-        loadQuestionIfNeeded()
-    }
-
-
     fun setInitialQuestion(question: TestQuestion) {
         val hadQuestion = _uiState.value.question != null
         if (hadQuestion) return
-        _uiState.update { it.copy(question = question, errorMessage = null, isInitialLoading = false) }
+        _uiState.update {
+            it.copy(
+                question = question,
+                errorMessage = null,
+                isInitialLoading = false,
+                // The first question is already issued by start-session, so progress must start from 1 issued.
+                progress = it.progress.copy(issuedQuestions = maxOf(it.progress.issuedQuestions, question.order)),
+            )
+        }
     }
 
     fun onOptionSelected(optionId: String) {
