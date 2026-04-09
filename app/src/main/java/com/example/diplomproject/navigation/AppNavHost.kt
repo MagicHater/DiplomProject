@@ -145,7 +145,12 @@ fun AppNavHost(
             LaunchedEffect(testUiState.navigateToResult) {
                 if (testUiState.navigateToResult) {
                     val finishedSessionId = testUiState.finishResult?.sessionId ?: return@LaunchedEffect
-                    navController.navigate(AppDestination.Result.createRoute(finishedSessionId))
+                    navController.navigate(AppDestination.Result.createRoute(finishedSessionId)) {
+                        popUpTo(AppDestination.Test.route) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
                     testViewModel.consumeResultNavigation()
                 }
             }
@@ -170,7 +175,12 @@ fun AppNavHost(
                 onRetryClick = resultViewModel::load,
                 onHistoryClick = { navController.navigate(AppDestination.History.route) },
                 onBackToCandidateHomeClick = {
-                    navController.navigate(AppDestination.CandidateHome.route)
+                    navController.navigate(AppDestination.CandidateHome.route) {
+                        popUpTo(AppDestination.CandidateHome.route) {
+                            inclusive = false
+                        }
+                        launchSingleTop = true
+                    }
                 },
             )
         }
