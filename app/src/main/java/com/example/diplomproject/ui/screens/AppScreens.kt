@@ -1,21 +1,16 @@
 package com.example.diplomproject.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -27,12 +22,11 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.diplomproject.domain.model.FinishedSessionResult
+import com.example.diplomproject.ui.components.ProfileRadarChart
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
@@ -277,7 +271,7 @@ fun ResultScreen(
                 uiState.isLoading -> LoadingState(message = "Загружаем результат...")
                 uiState.errorMessage != null -> ErrorState(uiState.errorMessage, "Повторить", onRetryClick)
                 uiState.emptyMessage != null -> EmptyState(uiState.emptyMessage)
-                uiState.result != null -> ResultContent(result = uiState.result, isChartPlaceholderVisible = uiState.isChartPlaceholderVisible)
+                uiState.result != null -> ResultContent(result = uiState.result)
             }
 
             Spacer(modifier = Modifier.weight(1f))
@@ -294,7 +288,6 @@ fun ResultScreen(
 @Composable
 private fun ResultContent(
     result: FinishedSessionResult,
-    isChartPlaceholderVisible: Boolean,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -310,27 +303,18 @@ private fun ResultContent(
         }
     }
 
-    if (isChartPlaceholderVisible) {
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text("Профиль шкал", style = MaterialTheme.typography.titleMedium)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("Визуализация профиля", style = MaterialTheme.typography.bodyMedium)
-                }
-            }
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("Профиль шкал", style = MaterialTheme.typography.titleMedium)
+            ProfileRadarChart(
+                metrics = radarMetrics(result.scores),
+                maxValue = 1f,
+            )
         }
     }
 
