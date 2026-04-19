@@ -25,7 +25,6 @@ class ResultViewModel @Inject constructor(
         ResultUiState(
             sessionId = sessionId,
             isLoading = true,
-            isChartPlaceholderVisible = true,
         ),
     )
     val uiState: StateFlow<ResultUiState> = _uiState.asStateFlow()
@@ -81,7 +80,6 @@ data class ResultUiState(
     val errorMessage: String? = null,
     val emptyMessage: String? = null,
     val result: FinishedSessionResult? = null,
-    val isChartPlaceholderVisible: Boolean = true,
 )
 
 private fun Throwable.toUiMessage(): String = when (this) {
