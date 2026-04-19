@@ -1,5 +1,7 @@
 package com.example.diplomproject.ui.components
 
+import android.graphics.Paint
+import android.text.TextPaint
 import android.text.TextUtils
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
@@ -15,15 +17,15 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.android.TextPaint
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 data class RadarMetric(
     val label: String,
@@ -39,8 +41,12 @@ fun ProfileRadarChart(
     modifier: Modifier = Modifier,
     maxValue: Float = 1f,
 ) {
+    val chartModifier = modifier
+        .fillMaxWidth()
+        .aspectRatio(1f)
+
     if (metrics.size != ExpectedAxisCount || maxValue <= 0f) {
-        Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Box(modifier = chartModifier, contentAlignment = Alignment.Center) {
             Text(
                 text = "Недостаточно данных для построения диаграммы",
                 style = MaterialTheme.typography.bodyMedium,
@@ -52,18 +58,8 @@ fun ProfileRadarChart(
 
     val colorScheme = MaterialTheme.colorScheme
     val density = LocalDensity.current
-    val labelStyle = MaterialTheme.typography.bodySmall.merge(
-        TextStyle(
-            fontSize = 12.sp,
-            color = colorScheme.onSurfaceVariant,
-        ),
-    )
 
-    Canvas(
-        modifier = modifier
-            .fillMaxWidth()
-            .aspectRatio(1f),
-    ) {
+    Canvas(modifier = chartModifier) {
         val chartPadding = 36.dp.toPx()
         val axisLabelDistance = 16.dp.toPx()
         val centerPointRadius = 3.dp.toPx()
@@ -138,10 +134,11 @@ fun ProfileRadarChart(
 
         val labelPaint = TextPaint().apply {
             isAntiAlias = true
-            textAlign = android.graphics.Paint.Align.LEFT
-            color = labelStyle.color.toArgb()
-            textSize = with(density) { labelStyle.fontSize.toPx() }
+            textAlign = Paint.Align.LEFT
+            color = colorScheme.onSurfaceVariant.toArgb()
+            textSize = with(density) { 12.sp.toPx() }
         }
+
         val maxLabelWidth = size.width * 0.32f
         val verticalTextOffset = 4.dp.toPx()
         outerPolygonPoints.forEachIndexed { index, point ->
@@ -151,17 +148,17 @@ fun ProfileRadarChart(
                 maxLabelWidth,
                 TextUtils.TruncateAt.END,
             ).toString()
-            val labelSize = labelPaint.measureText(label)
+            val labelWidth = labelPaint.measureText(label)
 
             val vectorX = point.x - chartCenter.x
             val vectorY = point.y - chartCenter.y
-            val vectorLength = kotlin.math.sqrt(vectorX * vectorX + vectorY * vectorY)
+            val vectorLength = sqrt(vectorX * vectorX + vectorY * vectorY)
             val unitX = if (vectorLength == 0f) 0f else vectorX / vectorLength
             val unitY = if (vectorLength == 0f) 0f else vectorY / vectorLength
-            val rawX = point.x + unitX * axisLabelDistance - labelSize / 2f
+            val rawX = point.x + unitX * axisLabelDistance - labelWidth / 2f
             val rawY = point.y + unitY * axisLabelDistance + verticalTextOffset
 
-            val safeX = rawX.coerceIn(0f, size.width - labelSize)
+            val safeX = rawX.coerceIn(0f, size.width - labelWidth)
             val safeY = rawY.coerceIn(labelPaint.textSize, size.height - 2.dp.toPx())
 
             drawContext.canvas.nativeCanvas.drawText(label, safeX, safeY, labelPaint)
@@ -192,13 +189,4 @@ private fun pointsToPath(points: List<Offset>, close: Boolean): Path {
     points.drop(1).forEach { point -> path.lineTo(point.x, point.y) }
     if (close) path.close()
     return path
-}
-
-private fun androidx.compose.ui.graphics.Color.toArgb(): Int {
-    return android.graphics.Color.argb(
-        (alpha * 255).toInt(),
-        (red * 255).toInt(),
-        (green * 255).toInt(),
-        (blue * 255).toInt(),
-    )
 }
