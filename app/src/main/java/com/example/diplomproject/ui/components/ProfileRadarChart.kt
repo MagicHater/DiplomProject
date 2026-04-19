@@ -1,8 +1,6 @@
 package com.example.diplomproject.ui.components
 
 import android.graphics.Paint
-import android.text.TextPaint
-import android.text.TextUtils
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
@@ -132,7 +130,7 @@ fun ProfileRadarChart(
             center = chartCenter,
         )
 
-        val labelPaint = TextPaint().apply {
+        val labelPaint = Paint().apply {
             isAntiAlias = true
             textAlign = Paint.Align.LEFT
             color = colorScheme.onSurfaceVariant.toArgb()
@@ -142,12 +140,11 @@ fun ProfileRadarChart(
         val maxLabelWidth = size.width * 0.32f
         val verticalTextOffset = 4.dp.toPx()
         outerPolygonPoints.forEachIndexed { index, point ->
-            val label = TextUtils.ellipsize(
-                metrics[index].label,
-                labelPaint,
-                maxLabelWidth,
-                TextUtils.TruncateAt.END,
-            ).toString()
+            val label = ellipsizeLabel(
+                text = metrics[index].label,
+                paint = labelPaint,
+                maxWidth = maxLabelWidth,
+            )
             val labelWidth = labelPaint.measureText(label)
 
             val vectorX = point.x - chartCenter.x
@@ -189,4 +186,23 @@ private fun pointsToPath(points: List<Offset>, close: Boolean): Path {
     points.drop(1).forEach { point -> path.lineTo(point.x, point.y) }
     if (close) path.close()
     return path
+}
+
+
+private fun ellipsizeLabel(
+    text: String,
+    paint: Paint,
+    maxWidth: Float,
+): String {
+    if (paint.measureText(text) <= maxWidth) return text
+
+    val ellipsis = "…"
+    val ellipsisWidth = paint.measureText(ellipsis)
+    var endIndex = text.length
+    while (endIndex > 0 && paint.measureText(text, 0, endIndex) + ellipsisWidth > maxWidth) {
+        endIndex--
+    }
+
+    if (endIndex <= 0) return ellipsis
+    return text.substring(0, endIndex).trimEnd() + ellipsis
 }
