@@ -15,7 +15,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.diplomproject.domain.model.ScaleInterpretations
 import com.example.diplomproject.domain.model.ScaleScores
-import com.example.diplomproject.ui.components.RadarMetric
 
 data class ScaleItemUi(
     val title: String,
@@ -29,15 +28,6 @@ fun scaleItems(scores: ScaleScores, interpretations: ScaleInterpretations): List
     ScaleItemUi("Ответственность", scores.responsibility, interpretations.responsibility),
     ScaleItemUi("Адаптивность", scores.adaptability, interpretations.adaptability),
     ScaleItemUi("Скорость/точность решений", scores.decisionSpeedAccuracy, interpretations.decisionSpeedAccuracy),
-)
-
-
-fun radarMetrics(scores: ScaleScores): List<RadarMetric> = listOf(
-    RadarMetric(label = "Внимание", value = scores.attention.toFloat()),
-    RadarMetric(label = "Стрессоустойчивость", value = scores.stressResistance.toFloat()),
-    RadarMetric(label = "Ответственность", value = scores.responsibility.toFloat()),
-    RadarMetric(label = "Адаптивность", value = scores.adaptability.toFloat()),
-    RadarMetric(label = "Скорость/точность решений", value = scores.decisionSpeedAccuracy.toFloat()),
 )
 
 fun compactScoreItems(scores: ScaleScores): List<Pair<String, Double>> = listOf(
