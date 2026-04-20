@@ -216,6 +216,22 @@ fun ControllerHomeScreen(
                 ) {
                     Text("Генерация токена", style = MaterialTheme.typography.titleMedium)
 
+                    uiState.errorMessage?.let { message ->
+                        Text(
+                            text = message,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+
+                    uiState.infoMessage?.let { message ->
+                        Text(
+                            text = message,
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+
                     ExposedDropdownMenuBox(
                         expanded = categoryExpanded,
                         onExpandedChange = { categoryExpanded = !categoryExpanded },
