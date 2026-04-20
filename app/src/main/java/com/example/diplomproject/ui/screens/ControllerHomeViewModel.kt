@@ -67,43 +67,15 @@ class ControllerHomeViewModel @Inject constructor(
                     }
                 }
                 .onFailure { error ->
-                    recoverTokenFromHistoryOrShowError(categoryId, error)
-                }
-        }
-    }
-
-    private suspend fun recoverTokenFromHistoryOrShowError(categoryId: String, originalError: Throwable) {
-        runCatching { testSessionRepository.getControllerTokens() }
-            .onSuccess { tokens ->
-                val recovered = tokens.firstOrNull { it.category.id == categoryId }
-                if (recovered != null) {
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            generatedToken = recovered.token,
-                            infoMessage = "Токен получен из истории. Возможно, сервер создал его, но ответ обработался с ошибкой.",
-                            errorMessage = null,
-                        )
-                    }
-                } else {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = originalError.message ?: "Не удалось сгенерировать токен",
+                            errorMessage = error.message ?: "Не удалось сгенерировать токен",
                             infoMessage = null,
                         )
                     }
                 }
-            }
-            .onFailure {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = originalError.message ?: "Не удалось сгенерировать токен",
-                        infoMessage = null,
-                    )
-                }
-            }
+        }
     }
 }
 
