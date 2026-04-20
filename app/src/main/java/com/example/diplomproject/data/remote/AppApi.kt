@@ -2,7 +2,6 @@ package com.example.diplomproject.data.remote
 
 import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
 
@@ -30,14 +29,11 @@ interface AppApi {
 
     @POST("controller/test-management/tokens")
     suspend fun createControllerToken(
-        @Header("X-App-Jwt") jwt: String,
         @Body request: ControllerTokenRequestDto
     ): ControllerTokenResponseDto
 
     @GET("controller/test-management/tokens")
-    suspend fun getControllerTokens(
-        @Header("X-App-Jwt") jwt: String
-    ): List<ControllerTokenResponseDto>
+    suspend fun getControllerTokens(): List<ControllerTokenResponseDto>
 
     @GET("test-sessions/{sessionId}/next-question")
     suspend fun getNextQuestion(@Path("sessionId") sessionId: String): NextQuestionResponseDto

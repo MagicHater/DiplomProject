@@ -42,7 +42,6 @@ class SecurityConfig(
                     .requestMatchers("/token-access/preview", "/token-access/start-guest").permitAll()
                     .requestMatchers("/token-access/start-candidate").hasRole("CANDIDATE")
                     .requestMatchers("/me/results", "/me/results/**").hasRole("CANDIDATE")
-                    .requestMatchers("/controller/test-management/**").permitAll()
                     .requestMatchers("/controller/**").hasRole("CONTROLLER")
                     .requestMatchers("/test-sessions/**").permitAll()
                     .anyRequest().authenticated()
