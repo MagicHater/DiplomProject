@@ -12,6 +12,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 
 private val Context.authDataStore by preferencesDataStore(name = "auth_preferences")
@@ -42,6 +43,10 @@ class SessionManager @Inject constructor(
             }
         }
         .map { preferences: Preferences -> preferences[guestSessionKey] }
+
+    suspend fun getToken(): String? = tokenFlow.firstOrNull()
+
+    suspend fun getGuestSessionKey(): String? = guestSessionKeyFlow.firstOrNull()
 
     suspend fun saveToken(token: String) {
         context.authDataStore.edit { preferences ->
