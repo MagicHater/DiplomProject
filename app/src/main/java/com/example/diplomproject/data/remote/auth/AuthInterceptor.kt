@@ -16,8 +16,21 @@ class AuthInterceptor @Inject constructor(
         val originalRequest = chain.request()
         var requestBuilder = originalRequest.newBuilder()
 
-        if (!originalRequest.shouldSkipAuthHeader() && originalRequest.header("Authorization").isNullOrBlank()) {
-            val token = runBlocking { sessionManager.tokenFlow.firstOrNull() }
+        val explicitAuthHeader = originalRequest.header("Authorization")
+        val customJwtHeader = originalRequest.header("X-App-Jwt")
+
+        if (!originalRequest.shouldSkipAuthHeader() && explicitAuthHeader.isNullOrBlank()) {
+            val tokenFromCustomHeader = customJwtHeader
+                ?.removePrefix("Bearer ")
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+
+            val tokenFromSession = runBlocking { sessionManager.tokenFlow.firstOrNull() }
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+
+            val token = tokenFromCustomHeader ?: tokenFromSession
+
             if (!token.isNullOrBlank()) {
                 requestBuilder = requestBuilder.header("Authorization", "Bearer $token")
             }
