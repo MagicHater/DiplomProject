@@ -27,23 +27,83 @@ class ControllerHomeViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { testSessionRepository.getCategories() }
                 .onSuccess { categories ->
-                    _uiState.update { it.copy(categories = categories, selectedCategoryId = categories.firstOrNull()?.id) }
+                    _uiState.update {
+                        it.copy(
+                            categories = categories,
+                            selectedCategoryId = it.selectedCategoryId ?: categories.firstOrNull()?.id,
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(errorMessage = error.message ?: "Не удалось загрузить категории тестов")
+                    }
                 }
         }
     }
 
     fun onCategorySelected(id: String) {
-        _uiState.update { it.copy(selectedCategoryId = id) }
+        _uiState.update { it.copy(selectedCategoryId = id, errorMessage = null, infoMessage = null) }
     }
 
     fun generateToken() {
-        val categoryId = _uiState.value.selectedCategoryId ?: return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            runCatching { testSessionRepository.createControllerToken(categoryId) }
-                .onSuccess { token -> _uiState.update { it.copy(isLoading = false, generatedToken = token.token) } }
-                .onFailure { _uiState.update { it.copy(isLoading = false) } }
+        val categoryId = _uiState.value.selectedCategoryId ?: run {
+            _uiState.update { it.copy(errorMessage = "Сначала выберите категорию") }
+            return
         }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+
+            runCatching { testSessionRepository.createControllerToken(categoryId) }
+                .onSuccess { token ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            generatedToken = token.token,
+                            infoMessage = "Токен успешно сгенерирован",
+                            errorMessage = null,
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    recoverTokenFromHistoryOrShowError(categoryId, error)
+                }
+        }
+    }
+
+    private suspend fun recoverTokenFromHistoryOrShowError(categoryId: String, originalError: Throwable) {
+        runCatching { testSessionRepository.getControllerTokens() }
+            .onSuccess { tokens ->
+                val recovered = tokens.firstOrNull { it.category.id == categoryId }
+                if (recovered != null) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            generatedToken = recovered.token,
+                            infoMessage = "Токен получен из истории. Возможно, сервер создал его, но ответ обработался с ошибкой.",
+                            errorMessage = null,
+                        )
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = originalError.message ?: "Не удалось сгенерировать токен",
+                            infoMessage = null,
+                        )
+                    }
+                }
+            }
+            .onFailure {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = originalError.message ?: "Не удалось сгенерировать токен",
+                        infoMessage = null,
+                    )
+                }
+            }
     }
 }
 
@@ -52,4 +112,6 @@ data class ControllerHomeUiState(
     val categories: List<TestCategory> = emptyList(),
     val selectedCategoryId: String? = null,
     val generatedToken: String = "",
+    val errorMessage: String? = null,
+    val infoMessage: String? = null,
 )
