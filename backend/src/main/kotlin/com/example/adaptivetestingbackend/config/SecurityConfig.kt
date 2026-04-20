@@ -3,6 +3,7 @@ package com.example.adaptivetestingbackend.config
 import com.example.adaptivetestingbackend.security.JwtAuthenticationFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpStatus
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
@@ -11,7 +12,6 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.HttpStatusEntryPoint
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
-import org.springframework.http.HttpStatus
 
 @Configuration
 @EnableWebSecurity
@@ -31,17 +31,18 @@ class SecurityConfig(
             }
             .authorizeHttpRequests {
                 it.requestMatchers(
-                        "/health",
-                        "/actuator/health",
-                        "/auth/register",
-                        "/auth/login",
-                        "/v3/api-docs/**",
-                        "/swagger-ui/**",
-                        "/swagger-ui.html",
-                    ).permitAll()
+                    "/health",
+                    "/actuator/health",
+                    "/auth/register",
+                    "/auth/login",
+                    "/v3/api-docs/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                ).permitAll()
                     .requestMatchers("/token-access/preview", "/token-access/start-guest").permitAll()
                     .requestMatchers("/token-access/start-candidate").hasRole("CANDIDATE")
                     .requestMatchers("/me/results", "/me/results/**").hasRole("CANDIDATE")
+                    .requestMatchers("/controller/test-management/**").permitAll()
                     .requestMatchers("/controller/**").hasRole("CONTROLLER")
                     .requestMatchers("/test-sessions/**").permitAll()
                     .anyRequest().authenticated()
