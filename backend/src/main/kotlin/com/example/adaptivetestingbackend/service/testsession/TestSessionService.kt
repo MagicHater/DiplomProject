@@ -9,10 +9,12 @@ import com.example.adaptivetestingbackend.dto.testsession.SessionQuestionDto
 import com.example.adaptivetestingbackend.dto.testsession.SessionQuestionOptionDto
 import com.example.adaptivetestingbackend.dto.testsession.SubmitAnswerRequest
 import com.example.adaptivetestingbackend.dto.testsession.SubmitAnswerResponse
+import com.example.adaptivetestingbackend.dto.testsession.TestCategoryResponse
 import com.example.adaptivetestingbackend.entity.AnswerEntity
 import com.example.adaptivetestingbackend.entity.QuestionSnapshotEntity
 import com.example.adaptivetestingbackend.entity.RoleName
 import com.example.adaptivetestingbackend.entity.ResultProfileEntity
+import com.example.adaptivetestingbackend.entity.TestAccessTokenEntity
 import com.example.adaptivetestingbackend.entity.TestSessionEntity
 import com.example.adaptivetestingbackend.entity.TestSessionStatus
 import com.example.adaptivetestingbackend.entity.UserEntity
@@ -21,6 +23,7 @@ import com.example.adaptivetestingbackend.repository.QuestionOptionRepository
 import com.example.adaptivetestingbackend.repository.QuestionRepository
 import com.example.adaptivetestingbackend.repository.QuestionSnapshotRepository
 import com.example.adaptivetestingbackend.repository.ResultProfileRepository
+import com.example.adaptivetestingbackend.repository.TestCategoryRepository
 import com.example.adaptivetestingbackend.repository.TestSessionRepository
 import com.example.adaptivetestingbackend.repository.UserRepository
 import org.springframework.http.HttpStatus
@@ -43,44 +46,84 @@ class TestSessionService(
     private val adaptiveQuestionSelectionStrategy: AdaptiveQuestionSelectionStrategy,
     private val resultCalculationService: ResultCalculationService,
     private val resultProfileMapper: ResultProfileMapper,
+    private val testCategoryRepository: TestCategoryRepository,
 ) {
     @Transactional
-    fun createSession(userEmail: String): CreateTestSessionResponse {
+    fun createSession(userEmail: String, categoryId: UUID?): CreateTestSessionResponse {
         val user = getCandidateUser(userEmail)
-        val now = OffsetDateTime.now()
+        return createSessionByActor(SessionActor.CandidateActor(user), categoryId ?: resolveDefaultCategoryId(), null)
+    }
 
-        val session = testSessionRepository.save(
-            TestSessionEntity(
-                candidate = user,
-                status = TestSessionStatus.IN_PROGRESS,
-                createdAt = now,
-                updatedAt = now,
-                startedAt = now,
-            ),
-        )
+    @Transactional
+    fun createSessionByActor(
+        actor: SessionActor,
+        categoryId: UUID,
+        accessToken: TestAccessTokenEntity?,
+    ): CreateTestSessionResponse {
+        val category = testCategoryRepository.findById(categoryId)
+            .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found") }
+
+        val availableQuestions = questionRepository.countByIsActiveTrueAndCategoryId(category.id)
+        if (availableQuestions == 0) {
+            throw ResponseStatusException(HttpStatus.CONFLICT, "Category has no active questions")
+        }
+
+        val now = OffsetDateTime.now()
+        val session = when (actor) {
+            is SessionActor.CandidateActor -> testSessionRepository.save(
+                TestSessionEntity(
+                    candidate = actor.user,
+                    category = category,
+                    accessToken = accessToken,
+                    status = TestSessionStatus.IN_PROGRESS,
+                    createdAt = now,
+                    updatedAt = now,
+                    startedAt = now,
+                ),
+            )
+
+            is SessionActor.GuestActor -> testSessionRepository.save(
+                TestSessionEntity(
+                    id = actor.sessionId,
+                    candidate = null,
+                    category = category,
+                    accessToken = accessToken,
+                    guestIdentifier = actor.guestName,
+                    guestSessionKey = actor.guestKey,
+                    status = TestSessionStatus.IN_PROGRESS,
+                    createdAt = now,
+                    updatedAt = now,
+                    startedAt = now,
+                ),
+            )
+        }
+
+        accessToken?.testSession = session
 
         return CreateTestSessionResponse(
             sessionId = session.id,
             status = session.status.dbValue,
             createdAt = session.createdAt,
             startedAt = session.startedAt,
+            category = category.toResponse(),
+            guestSession = session.candidate == null,
+            guestSessionKey = session.guestSessionKey,
         )
     }
 
     @Transactional
-    fun getNextQuestion(sessionId: UUID, userEmail: String): NextQuestionResponse {
-        val user = getCandidateUser(userEmail)
+    fun getNextQuestion(sessionId: UUID, actor: SessionActor): NextQuestionResponse {
         val session = testSessionRepository.findById(sessionId)
             .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Test session not found") }
 
-        ensureSessionOwner(session, user)
+        ensureSessionAccess(session, actor)
 
         val snapshots = questionSnapshotRepository.findBySessionIdOrderByQuestionOrderAsc(sessionId)
         val askedQuestionIds = snapshots.mapNotNull { it.question?.id }.toSet()
         val sessionState = adaptiveSessionStateService.readState(session.adaptiveStateJson)
 
         val nextQuestion = adaptiveQuestionSelectionStrategy.selectNextQuestion(
-            allActiveQuestions = questionRepository.findByIsActiveTrueOrderByPriorityDescDifficultyAscCreatedAtAsc(),
+            allActiveQuestions = questionRepository.findByIsActiveTrueAndCategoryIdOrderByPriorityDescDifficultyAscCreatedAtAsc(session.category.id),
             askedQuestionIds = askedQuestionIds,
             state = sessionState,
         )
@@ -132,21 +175,18 @@ class TestSessionService(
     }
 
     @Transactional
-    fun submitAnswer(sessionId: UUID, userEmail: String, request: SubmitAnswerRequest): SubmitAnswerResponse {
-        val user = getCandidateUser(userEmail)
+    fun submitAnswer(sessionId: UUID, actor: SessionActor, request: SubmitAnswerRequest): SubmitAnswerResponse {
         val session = testSessionRepository.findById(sessionId)
             .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Test session not found") }
 
-        ensureSessionOwner(session, user)
+        ensureSessionAccess(session, actor)
 
         if (session.status == TestSessionStatus.COMPLETED || session.status == TestSessionStatus.CANCELLED) {
             throw ResponseStatusException(HttpStatus.CONFLICT, "Cannot answer in completed or cancelled session")
         }
 
-        val snapshotId = request.snapshotId
-            ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "snapshotId is required")
-        val selectedOptionId = request.selectedOptionId
-            ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "selectedOptionId is required")
+        val snapshotId = request.snapshotId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "snapshotId is required")
+        val selectedOptionId = request.selectedOptionId ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "selectedOptionId is required")
 
         val snapshot = questionSnapshotRepository.findByIdAndSessionId(snapshotId, sessionId)
             ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Question snapshot was not issued in this session")
@@ -175,17 +215,13 @@ class TestSessionService(
         )
 
         val previousState = adaptiveSessionStateService.readState(session.adaptiveStateJson)
-        val updatedState = adaptiveSessionStateService.applyAnswer(
-            currentState = previousState,
-            snapshot = snapshot,
-            answerValue = selectedOption.contributionValue,
-        )
+        val updatedState = adaptiveSessionStateService.applyAnswer(previousState, snapshot, selectedOption.contributionValue)
 
         session.adaptiveStateJson = adaptiveSessionStateService.writeState(updatedState)
         session.updatedAt = OffsetDateTime.now()
         testSessionRepository.save(session)
 
-        val totalAvailableQuestions = questionRepository.countByIsActiveTrue()
+        val totalAvailableQuestions = questionRepository.countByIsActiveTrueAndCategoryId(session.category.id)
         val effectiveMaxQuestions = minOf(totalAvailableQuestions, adaptiveQuestionSelectionStrategy.maxQuestionsPerSession)
         val issuedQuestions = questionSnapshotRepository.findBySessionIdOrderByQuestionOrderAsc(sessionId).size
 
@@ -206,12 +242,11 @@ class TestSessionService(
     }
 
     @Transactional
-    fun finishSession(sessionId: UUID, userEmail: String): ResultProfileResponse {
-        val user = getCandidateUser(userEmail)
+    fun finishSession(sessionId: UUID, actor: SessionActor): ResultProfileResponse {
         val session = testSessionRepository.findById(sessionId)
             .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Test session not found") }
 
-        ensureSessionOwner(session, user)
+        ensureSessionAccess(session, actor)
 
         if (session.status != TestSessionStatus.IN_PROGRESS) {
             throw ResponseStatusException(HttpStatus.CONFLICT, "Only active session can be finished")
@@ -243,6 +278,18 @@ class TestSessionService(
         session.status = TestSessionStatus.COMPLETED
         session.completedAt = now
         session.updatedAt = now
+
+        session.accessToken?.let { token ->
+            if (!token.isUsed) {
+                token.isUsed = true
+                token.usedAt = now
+                when (actor) {
+                    is SessionActor.CandidateActor -> token.usedByUser = actor.user
+                    is SessionActor.GuestActor -> token.usedByGuestDisplayName = actor.guestName ?: session.guestIdentifier
+                }
+            }
+        }
+
         testSessionRepository.save(session)
 
         return resultProfileMapper.toResultProfile(profile)
@@ -254,7 +301,7 @@ class TestSessionService(
         val session = testSessionRepository.findById(sessionId)
             .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Test session not found") }
 
-        ensureSessionOwner(session, user)
+        ensureSessionAccess(session, SessionActor.CandidateActor(user))
 
         val resultProfile = resultProfileRepository.findBySessionId(sessionId)
             .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Result profile not found") }
@@ -271,6 +318,12 @@ class TestSessionService(
         ).map { resultProfileMapper.toResultListItem(it) }
     }
 
+    fun resolveCandidateActor(userEmail: String): SessionActor.CandidateActor = SessionActor.CandidateActor(getCandidateUser(userEmail))
+
+    private fun resolveDefaultCategoryId(): UUID =
+        testCategoryRepository.findFirstByIsActiveTrueOrderByNameAsc()?.id
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "No active test categories")
+
     private fun getCandidateUser(userEmail: String): UserEntity {
         val user = userRepository.findByEmail(userEmail)
             .orElseThrow { ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found") }
@@ -282,9 +335,27 @@ class TestSessionService(
         return user
     }
 
-    private fun ensureSessionOwner(session: TestSessionEntity, user: UserEntity) {
-        if (session.candidate.id != user.id) {
-            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied for this test session")
+    private fun ensureSessionAccess(session: TestSessionEntity, actor: SessionActor) {
+        when (actor) {
+            is SessionActor.CandidateActor -> {
+                val owner = session.candidate ?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Guest session")
+                if (owner.id != actor.user.id) {
+                    throw ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied for this test session")
+                }
+            }
+
+            is SessionActor.GuestActor -> {
+                if (session.id != actor.sessionId || session.guestSessionKey != actor.guestKey) {
+                    throw ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid guest session credentials")
+                }
+            }
         }
     }
 }
+
+private fun com.example.adaptivetestingbackend.entity.TestCategoryEntity.toResponse() = TestCategoryResponse(
+    id = id,
+    code = code,
+    name = name,
+    description = description,
+)

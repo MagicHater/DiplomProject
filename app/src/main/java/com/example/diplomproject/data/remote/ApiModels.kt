@@ -9,9 +9,56 @@ data class HealthResponse(
 )
 
 @Serializable
+data class TestCategoryDto(
+    @SerialName("id") val id: String,
+    @SerialName("code") val code: String,
+    @SerialName("name") val name: String,
+    @SerialName("description") val description: String? = null,
+)
+
+@Serializable
+data class CreateTestSessionRequestDto(
+    @SerialName("categoryId") val categoryId: String,
+)
+
+@Serializable
 data class CreateTestSessionResponseDto(
     @SerialName("sessionId") val sessionId: String,
     @SerialName("status") val status: String,
+    @SerialName("category") val category: TestCategoryDto,
+    @SerialName("guestSession") val guestSession: Boolean = false,
+    @SerialName("guestSessionKey") val guestSessionKey: String? = null,
+)
+
+@Serializable
+data class TokenPreviewRequestDto(@SerialName("token") val token: String)
+
+@Serializable
+data class TokenPreviewResponseDto(
+    @SerialName("valid") val valid: Boolean,
+    @SerialName("used") val used: Boolean,
+    @SerialName("category") val category: TestCategoryDto? = null,
+    @SerialName("requiresAuth") val requiresAuth: Boolean,
+)
+
+@Serializable
+data class StartGuestByTokenRequestDto(
+    @SerialName("token") val token: String,
+    @SerialName("guestName") val guestName: String,
+)
+
+@Serializable
+data class StartCandidateByTokenRequestDto(@SerialName("token") val token: String)
+
+@Serializable
+data class ControllerTokenRequestDto(@SerialName("categoryId") val categoryId: String)
+
+@Serializable
+data class ControllerTokenResponseDto(
+    @SerialName("token") val token: String,
+    @SerialName("category") val category: TestCategoryDto,
+    @SerialName("createdAt") val createdAt: String,
+    @SerialName("isUsed") val isUsed: Boolean,
 )
 
 @Serializable

@@ -8,4 +8,7 @@ data class CreateTestSessionResponse(
     val status: String,
     val createdAt: OffsetDateTime,
     val startedAt: OffsetDateTime?,
+    val category: TestCategoryResponse,
+    val guestSession: Boolean = false,
+    val guestSessionKey: String? = null,
 )

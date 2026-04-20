@@ -19,9 +19,9 @@ class TestSessionEntity(
     @Column(nullable = false)
     val id: UUID = UUID.randomUUID(),
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "candidate_user_id", nullable = false)
-    val candidate: UserEntity,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "candidate_user_id")
+    val candidate: UserEntity? = null,
 
     @Convert(converter = TestSessionStatusConverter::class)
     @Column(nullable = false, length = 32)
@@ -32,6 +32,20 @@ class TestSessionEntity(
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt: OffsetDateTime = OffsetDateTime.now(),
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
+    val category: TestCategoryEntity,
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "access_token_id")
+    var accessToken: TestAccessTokenEntity? = null,
+
+    @Column(name = "guest_identifier", length = 255)
+    var guestIdentifier: String? = null,
+
+    @Column(name = "guest_session_key", length = 128)
+    var guestSessionKey: String? = null,
 
     @Column(name = "started_at")
     val startedAt: OffsetDateTime? = null,

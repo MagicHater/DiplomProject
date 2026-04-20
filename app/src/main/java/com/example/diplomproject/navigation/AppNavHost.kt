@@ -25,6 +25,7 @@ import com.example.diplomproject.ui.screens.CandidateHomeScreen
 import com.example.diplomproject.ui.screens.CandidateHomeViewModel
 import com.example.diplomproject.ui.screens.CandidateListScreen
 import com.example.diplomproject.ui.screens.ControllerHomeScreen
+import com.example.diplomproject.ui.screens.ControllerHomeViewModel
 import com.example.diplomproject.ui.screens.HistoryScreen
 import com.example.diplomproject.ui.screens.HistoryViewModel
 import com.example.diplomproject.ui.screens.LoginScreen
@@ -106,21 +107,25 @@ fun AppNavHost(
             CandidateHomeScreen(
                 uiState = candidateHomeState,
                 onStartTestClick = { candidateHomeViewModel.startTest() },
+                onCategorySelected = candidateHomeViewModel::onCategorySelected,
+                onTokenInputChanged = candidateHomeViewModel::onTokenChanged,
+                onStartByTokenClick = candidateHomeViewModel::startByToken,
                 onResultClick = { navController.navigate(AppDestination.History.route) },
                 onHistoryClick = { navController.navigate(AppDestination.History.route) },
-                onLogoutClick = {
-                    authViewModel.logout()
-                },
+                onLogoutClick = { authViewModel.logout() },
             )
         }
 
         composable(AppDestination.ControllerHome.route) {
+            val controllerViewModel: ControllerHomeViewModel = hiltViewModel()
+            val controllerUiState by controllerViewModel.uiState.collectAsState()
             ControllerHomeScreen(
+                uiState = controllerUiState,
+                onCategorySelected = controllerViewModel::onCategorySelected,
+                onGenerateTokenClick = controllerViewModel::generateToken,
                 onCandidateListClick = { navController.navigate(AppDestination.CandidateList.route) },
                 onHistoryClick = { navController.navigate(AppDestination.History.route) },
-                onLogoutClick = {
-                    authViewModel.logout()
-                },
+                onLogoutClick = { authViewModel.logout() },
             )
         }
 
