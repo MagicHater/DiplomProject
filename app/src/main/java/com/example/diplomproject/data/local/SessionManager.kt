@@ -21,6 +21,7 @@ class SessionManager @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     private val tokenKey = stringPreferencesKey("jwt_token")
+    private val guestSessionKey = stringPreferencesKey("guest_session_key")
 
     val tokenFlow: Flow<String?> = context.authDataStore.data
         .catch { throwable ->
@@ -32,15 +33,39 @@ class SessionManager @Inject constructor(
         }
         .map { preferences: Preferences -> preferences[tokenKey] }
 
+    val guestSessionKeyFlow: Flow<String?> = context.authDataStore.data
+        .catch { throwable ->
+            if (throwable is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw throwable
+            }
+        }
+        .map { preferences: Preferences -> preferences[guestSessionKey] }
+
     suspend fun saveToken(token: String) {
         context.authDataStore.edit { preferences ->
             preferences[tokenKey] = token
+            preferences.remove(guestSessionKey)
+        }
+    }
+
+    suspend fun saveGuestSessionKey(key: String) {
+        context.authDataStore.edit { preferences ->
+            preferences[guestSessionKey] = key
+        }
+    }
+
+    suspend fun clearGuestSessionKey() {
+        context.authDataStore.edit { preferences ->
+            preferences.remove(guestSessionKey)
         }
     }
 
     suspend fun clearSession() {
         context.authDataStore.edit { preferences ->
             preferences.remove(tokenKey)
+            preferences.remove(guestSessionKey)
         }
     }
 }

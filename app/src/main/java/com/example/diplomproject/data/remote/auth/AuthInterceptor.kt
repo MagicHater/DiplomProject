@@ -14,24 +14,32 @@ class AuthInterceptor @Inject constructor(
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
-        if (originalRequest.shouldSkipAuthHeader()) {
-            return chain.proceed(originalRequest)
+        var requestBuilder = originalRequest.newBuilder()
+
+        if (!originalRequest.shouldSkipAuthHeader()) {
+            val token = runBlocking { sessionManager.tokenFlow.firstOrNull() }
+            if (!token.isNullOrBlank()) {
+                requestBuilder = requestBuilder.addHeader("Authorization", "Bearer $token")
+            }
         }
 
-        val token = runBlocking { sessionManager.tokenFlow.firstOrNull() }
-        if (token.isNullOrBlank()) {
-            return chain.proceed(originalRequest)
+        if (originalRequest.shouldAttachGuestSessionHeader()) {
+            val guestSessionKey = runBlocking { sessionManager.guestSessionKeyFlow.firstOrNull() }
+            if (!guestSessionKey.isNullOrBlank()) {
+                requestBuilder = requestBuilder.addHeader("X-Guest-Session-Key", guestSessionKey)
+            }
         }
 
-        val authorizedRequest = originalRequest.newBuilder()
-            .addHeader("Authorization", "Bearer $token")
-            .build()
-
-        return chain.proceed(authorizedRequest)
+        return chain.proceed(requestBuilder.build())
     }
 }
 
 private fun okhttp3.Request.shouldSkipAuthHeader(): Boolean {
     val path = url.encodedPath
     return path == "/auth/login" || path == "/auth/register"
+}
+
+private fun okhttp3.Request.shouldAttachGuestSessionHeader(): Boolean {
+    val path = url.encodedPath
+    return path.startsWith("/test-sessions/")
 }
