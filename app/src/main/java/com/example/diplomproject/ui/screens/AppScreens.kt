@@ -46,7 +46,10 @@ import androidx.compose.ui.unit.dp
 import com.example.diplomproject.domain.model.FinishedSessionResult
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
-
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import com.example.diplomproject.ui.components.ProfileRadarChart
+import com.example.diplomproject.ui.components.RadarMetric
 @Composable
 fun CandidateHomeScreen(
     uiState: CandidateHomeUiState,
@@ -414,6 +417,8 @@ fun ResultScreen(
     onHistoryClick: () -> Unit,
     onBackToCandidateHomeClick: () -> Unit,
 ) {
+    val scrollState = rememberScrollState()
+
     AppScreenScaffold(title = "Итоговый отчёт") { innerPadding ->
         Column(
             modifier = Modifier
@@ -422,18 +427,37 @@ fun ResultScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            when {
-                uiState.isLoading -> LoadingState(message = "Загружаем результат...")
-                uiState.errorMessage != null -> ErrorState(uiState.errorMessage, "Повторить", onRetryClick)
-                uiState.emptyMessage != null -> EmptyState(uiState.emptyMessage)
-                uiState.result != null -> ResultContent(result = uiState.result, isChartPlaceholderVisible = uiState.isChartPlaceholderVisible)
+            Column(
+                modifier = Modifier
+                    .weight(1f, fill = true)
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                when {
+                    uiState.isLoading -> LoadingState(message = "Загружаем результат...")
+                    uiState.errorMessage != null -> ErrorState(
+                        message = uiState.errorMessage,
+                        actionLabel = "Повторить",
+                        onActionClick = onRetryClick,
+                    )
+                    uiState.emptyMessage != null -> EmptyState(uiState.emptyMessage)
+                    uiState.result != null -> ResultContent(
+                        result = uiState.result,
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
-            OutlinedButton(onClick = onHistoryClick, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(
+                onClick = onHistoryClick,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Text("К истории результатов")
             }
-            TextButton(onClick = onBackToCandidateHomeClick, modifier = Modifier.fillMaxWidth()) {
+
+            TextButton(
+                onClick = onBackToCandidateHomeClick,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Text("В кабинет кандидата")
             }
         }
@@ -443,7 +467,6 @@ fun ResultScreen(
 @Composable
 private fun ResultContent(
     result: FinishedSessionResult,
-    isChartPlaceholderVisible: Boolean,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -459,38 +482,37 @@ private fun ResultContent(
         }
     }
 
-    if (isChartPlaceholderVisible) {
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text("Профиль шкал", style = MaterialTheme.typography.titleMedium)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("Визуализация профиля", style = MaterialTheme.typography.bodyMedium)
-                }
-            }
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("Профиль шкал", style = MaterialTheme.typography.titleMedium)
+
+            ProfileRadarChart(
+                metrics = radarMetrics(result),
+                maxValue = 100f,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 
     SectionHeader(title = "Шкалы и интерпретации")
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         scaleItems(result.scores, result.interpretations).forEach { scale ->
             ScaleItemCard(item = scale)
         }
     }
 
-    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
         Text(
             text = "Итоговый профиль используется как рекомендательный инструмент и требует экспертной интерпретации.",
             style = MaterialTheme.typography.bodySmall,
@@ -498,7 +520,16 @@ private fun ResultContent(
         )
     }
 }
-
+@Composable
+private fun radarMetrics(result: FinishedSessionResult): List<RadarMetric> {
+    return listOf(
+        RadarMetric("Стресс", result.scores.stressResistance.toFloat()),
+        RadarMetric("Внимание", result.scores.attention.toFloat()),
+        RadarMetric("Ответств.", result.scores.responsibility.toFloat()),
+        RadarMetric("Адаптивн.", result.scores.adaptability.toFloat()),
+        RadarMetric("Скор./точн.", result.scores.decisionSpeedAccuracy.toFloat()),
+    )
+}
 @Composable
 fun HistoryScreen(
     uiState: HistoryUiState,

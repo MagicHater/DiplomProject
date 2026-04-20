@@ -42,6 +42,10 @@ class SecurityConfig(
                     .requestMatchers("/token-access/preview", "/token-access/start-guest").permitAll()
                     .requestMatchers("/token-access/start-candidate").hasRole("CANDIDATE")
                     .requestMatchers("/me/results", "/me/results/**").hasRole("CANDIDATE")
+
+                    // Ручная JWT-валидация в контроллере для token-management.
+                    .requestMatchers("/controller/test-management/**").permitAll()
+
                     .requestMatchers("/controller/**").hasRole("CONTROLLER")
                     .requestMatchers("/test-sessions/**").permitAll()
                     .anyRequest().authenticated()
