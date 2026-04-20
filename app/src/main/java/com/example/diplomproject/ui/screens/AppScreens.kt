@@ -20,10 +20,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -180,6 +180,7 @@ fun ControllerHomeScreen(
     var categoryExpanded by remember { mutableStateOf(false) }
     var copyStatus by remember(uiState.generatedToken) { mutableStateOf<String?>(null) }
     val selectedCategoryName = uiState.categories.firstOrNull { it.id == uiState.selectedCategoryId }?.name.orEmpty()
+    val tokenValue = uiState.generatedToken.ifBlank { "Сначала нажмите «Сгенерировать токен»" }
 
     AppScreenScaffold(title = "Кабинет экзаменатора") { innerPadding ->
         Column(
@@ -206,57 +207,85 @@ fun ControllerHomeScreen(
                 onClick = onHistoryClick,
             )
 
-            Text("Генерация токена", style = MaterialTheme.typography.titleMedium)
-            ExposedDropdownMenuBox(
-                expanded = categoryExpanded,
-                onExpandedChange = { categoryExpanded = !categoryExpanded },
-            ) {
-                OutlinedTextField(
-                    value = selectedCategoryName,
-                    onValueChange = {},
-                    readOnly = true,
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
                     modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth(),
-                    label = { Text("Категория") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
-                )
-                ExposedDropdownMenu(
-                    expanded = categoryExpanded,
-                    onDismissRequest = { categoryExpanded = false },
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    uiState.categories.forEach { category ->
-                        DropdownMenuItem(
-                            text = { Text(category.name) },
-                            onClick = {
-                                onCategorySelected(category.id)
-                                categoryExpanded = false
-                            },
+                    Text("Генерация токена", style = MaterialTheme.typography.titleMedium)
+
+                    ExposedDropdownMenuBox(
+                        expanded = categoryExpanded,
+                        onExpandedChange = { categoryExpanded = !categoryExpanded },
+                    ) {
+                        OutlinedTextField(
+                            value = selectedCategoryName,
+                            onValueChange = {},
+                            readOnly = true,
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth(),
+                            label = { Text("Категория") },
+                            placeholder = { Text("Выберите категорию") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
                         )
+                        ExposedDropdownMenu(
+                            expanded = categoryExpanded,
+                            onDismissRequest = { categoryExpanded = false },
+                        ) {
+                            uiState.categories.forEach { category ->
+                                DropdownMenuItem(
+                                    text = { Text(category.name) },
+                                    onClick = {
+                                        onCategorySelected(category.id)
+                                        categoryExpanded = false
+                                    },
+                                )
+                            }
+                        }
                     }
+
+                    Button(
+                        onClick = onGenerateTokenClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !uiState.isLoading,
+                    ) {
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Text("Сгенерировать токен")
+                    }
+
+                    OutlinedTextField(
+                        value = tokenValue,
+                        onValueChange = {},
+                        modifier = Modifier.fillMaxWidth(),
+                        readOnly = true,
+                        minLines = 2,
+                        label = { Text("Сгенерированный токен") },
+                    )
+
+                    OutlinedButton(
+                        onClick = {
+                            if (uiState.generatedToken.isNotBlank()) {
+                                clipboardManager.setText(AnnotatedString(uiState.generatedToken))
+                                copyStatus = "Токен скопирован"
+                            }
+                        },
+                        enabled = uiState.generatedToken.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Копировать токен")
+                    }
+
+                    Text(
+                        text = copyStatus ?: "После генерации токен можно сразу скопировать из поля выше.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                 }
-            }
-            Button(onClick = onGenerateTokenClick, modifier = Modifier.fillMaxWidth(), enabled = !uiState.isLoading) {
-                Text("Сгенерировать токен")
-            }
-            if (uiState.generatedToken.isNotBlank()) {
-                OutlinedTextField(
-                    value = uiState.generatedToken,
-                    onValueChange = {},
-                    modifier = Modifier.fillMaxWidth(),
-                    readOnly = true,
-                    label = { Text("Сгенерированный токен") },
-                )
-                OutlinedButton(
-                    onClick = {
-                        clipboardManager.setText(AnnotatedString(uiState.generatedToken))
-                        copyStatus = "Токен скопирован"
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Копировать")
-                }
-                copyStatus?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             }
 
             Spacer(modifier = Modifier.weight(1f))
