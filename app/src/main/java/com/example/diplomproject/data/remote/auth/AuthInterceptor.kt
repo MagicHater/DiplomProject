@@ -16,17 +16,17 @@ class AuthInterceptor @Inject constructor(
         val originalRequest = chain.request()
         var requestBuilder = originalRequest.newBuilder()
 
-        if (!originalRequest.shouldSkipAuthHeader()) {
+        if (!originalRequest.shouldSkipAuthHeader() && originalRequest.header("Authorization").isNullOrBlank()) {
             val token = runBlocking { sessionManager.tokenFlow.firstOrNull() }
             if (!token.isNullOrBlank()) {
-                requestBuilder = requestBuilder.addHeader("Authorization", "Bearer $token")
+                requestBuilder = requestBuilder.header("Authorization", "Bearer $token")
             }
         }
 
-        if (originalRequest.shouldAttachGuestSessionHeader()) {
+        if (originalRequest.shouldAttachGuestSessionHeader() && originalRequest.header("X-Guest-Session-Key").isNullOrBlank()) {
             val guestSessionKey = runBlocking { sessionManager.guestSessionKeyFlow.firstOrNull() }
             if (!guestSessionKey.isNullOrBlank()) {
-                requestBuilder = requestBuilder.addHeader("X-Guest-Session-Key", guestSessionKey)
+                requestBuilder = requestBuilder.header("X-Guest-Session-Key", guestSessionKey)
             }
         }
 
