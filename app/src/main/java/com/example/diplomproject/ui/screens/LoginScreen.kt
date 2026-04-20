@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -88,6 +90,45 @@ fun LoginScreen(
 
             TextButton(onClick = onRegisterClick) {
                 Text(text = "Нет аккаунта? Зарегистрироваться")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Или пройдите тест без регистрации",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            OutlinedTextField(
+                value = uiState.guestTokenInput,
+                onValueChange = viewModel::onGuestTokenChanged,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Токен доступа") },
+                singleLine = true,
+                isError = uiState.guestTokenError != null,
+                supportingText = { uiState.guestTokenError?.let { Text(it) } },
+            )
+
+            OutlinedTextField(
+                value = uiState.guestNameInput,
+                onValueChange = viewModel::onGuestNameChanged,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Имя гостя") },
+                singleLine = true,
+                isError = uiState.guestNameError != null,
+                supportingText = { uiState.guestNameError?.let { Text(it) } },
+            )
+
+            uiState.guestStartError?.let {
+                Text(text = it, color = MaterialTheme.colorScheme.error)
+            }
+
+            Button(
+                onClick = viewModel::startGuestByToken,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !uiState.isLoading,
+            ) {
+                Text("Пройти тест по токену без регистрации")
             }
         }
     }

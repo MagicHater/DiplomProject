@@ -20,6 +20,14 @@ data class TokenPreview(
     val valid: Boolean,
     val used: Boolean,
     val category: TestCategory? = null,
+    val requiresAuth: Boolean = false,
+) : Serializable
+
+data class TokenSessionStartResult(
+    val sessionId: String,
+    val category: TestCategory,
+    val guestSession: Boolean = false,
+    val guestSessionKey: String? = null,
 ) : Serializable
 
 data class TestQuestionOption(

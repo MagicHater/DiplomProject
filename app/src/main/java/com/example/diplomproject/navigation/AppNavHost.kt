@@ -78,6 +78,15 @@ fun AppNavHost(
         startDestination = AppDestination.Login.route,
     ) {
         composable(AppDestination.Login.route) {
+            LaunchedEffect(authState.guestStartedSession?.sessionId) {
+                val startedSession = authState.guestStartedSession ?: return@LaunchedEffect
+                navController.currentBackStackEntry
+                    ?.savedStateHandle
+                    ?.set("initialQuestion", startedSession.firstQuestion)
+                navController.navigate(AppDestination.Test.createRoute(startedSession.sessionId))
+                authViewModel.consumeGuestNavigation()
+            }
+
             LoginScreen(
                 onRegisterClick = { navController.navigate(AppDestination.Register.route) },
                 viewModel = authViewModel,
@@ -180,9 +189,14 @@ fun AppNavHost(
                 onRetryClick = resultViewModel::load,
                 onHistoryClick = { navController.navigate(AppDestination.History.route) },
                 onBackToCandidateHomeClick = {
-                    navController.navigate(AppDestination.CandidateHome.route) {
-                        popUpTo(AppDestination.CandidateHome.route) {
-                            inclusive = false
+                    val backRoute = when (authenticatedRole) {
+                        UserRole.Controller -> AppDestination.ControllerHome.route
+                        UserRole.Candidate -> AppDestination.CandidateHome.route
+                        null -> AppDestination.Login.route
+                    }
+                    navController.navigate(backRoute) {
+                        if (authenticatedRole == null) {
+                            popUpTo(navController.graph.startDestinationId) { inclusive = true }
                         }
                         launchSingleTop = true
                     }

@@ -1,6 +1,7 @@
 package com.example.diplomproject.ui.screens
 
 import com.example.diplomproject.domain.model.UserRole
+import com.example.diplomproject.domain.model.StartedTestSession
 
 data class AuthUiState(
     val login: String = "",
@@ -13,6 +14,12 @@ data class AuthUiState(
     val emailOrLoginError: String? = null,
     val passwordError: String? = null,
     val authError: String? = null,
+    val guestTokenInput: String = "",
+    val guestNameInput: String = "",
+    val guestTokenError: String? = null,
+    val guestNameError: String? = null,
+    val guestStartError: String? = null,
+    val guestStartedSession: StartedTestSession? = null,
     val isLoading: Boolean = false,
     val isRegistered: Boolean = false,
     val appSessionState: AppSessionState = AppSessionState.Initializing,

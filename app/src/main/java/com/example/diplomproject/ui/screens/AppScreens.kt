@@ -20,6 +20,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -28,9 +32,15 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.diplomproject.domain.model.FinishedSessionResult
@@ -157,6 +167,7 @@ fun CandidateHomeScreen(
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun ControllerHomeScreen(
     uiState: ControllerHomeUiState,
     onCategorySelected: (String) -> Unit,
@@ -165,6 +176,11 @@ fun ControllerHomeScreen(
     onHistoryClick: () -> Unit,
     onLogoutClick: () -> Unit,
 ) {
+    val clipboardManager = LocalClipboardManager.current
+    var categoryExpanded by remember { mutableStateOf(false) }
+    var copyStatus by remember(uiState.generatedToken) { mutableStateOf<String?>(null) }
+    val selectedCategoryName = uiState.categories.firstOrNull { it.id == uiState.selectedCategoryId }?.name.orEmpty()
+
     AppScreenScaffold(title = "Кабинет экзаменатора") { innerPadding ->
         Column(
             modifier = Modifier
@@ -191,20 +207,56 @@ fun ControllerHomeScreen(
             )
 
             Text("Генерация токена", style = MaterialTheme.typography.titleMedium)
-            uiState.categories.forEach { category ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(
-                        selected = uiState.selectedCategoryId == category.id,
-                        onClick = { onCategorySelected(category.id) },
-                    )
-                    Text(category.name)
+            ExposedDropdownMenuBox(
+                expanded = categoryExpanded,
+                onExpandedChange = { categoryExpanded = !categoryExpanded },
+            ) {
+                OutlinedTextField(
+                    value = selectedCategoryName,
+                    onValueChange = {},
+                    readOnly = true,
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth(),
+                    label = { Text("Категория") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                )
+                ExposedDropdownMenu(
+                    expanded = categoryExpanded,
+                    onDismissRequest = { categoryExpanded = false },
+                ) {
+                    uiState.categories.forEach { category ->
+                        DropdownMenuItem(
+                            text = { Text(category.name) },
+                            onClick = {
+                                onCategorySelected(category.id)
+                                categoryExpanded = false
+                            },
+                        )
+                    }
                 }
             }
             Button(onClick = onGenerateTokenClick, modifier = Modifier.fillMaxWidth(), enabled = !uiState.isLoading) {
                 Text("Сгенерировать токен")
             }
             if (uiState.generatedToken.isNotBlank()) {
-                Text("Токен: ${uiState.generatedToken}")
+                OutlinedTextField(
+                    value = uiState.generatedToken,
+                    onValueChange = {},
+                    modifier = Modifier.fillMaxWidth(),
+                    readOnly = true,
+                    label = { Text("Сгенерированный токен") },
+                )
+                OutlinedButton(
+                    onClick = {
+                        clipboardManager.setText(AnnotatedString(uiState.generatedToken))
+                        copyStatus = "Токен скопирован"
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Копировать")
+                }
+                copyStatus?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             }
 
             Spacer(modifier = Modifier.weight(1f))

@@ -2,9 +2,12 @@ package com.example.diplomproject.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.diplomproject.domain.model.StartedTestSession
 import com.example.diplomproject.domain.model.UserRole
 import com.example.diplomproject.domain.repository.AuthRepository
+import com.example.diplomproject.domain.repository.TestSessionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +19,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val testSessionRepository: TestSessionRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
@@ -38,6 +42,14 @@ class AuthViewModel @Inject constructor(
 
     fun onRoleSelected(role: UserRole) {
         _uiState.update { it.copy(selectedRole = role) }
+    }
+
+    fun onGuestTokenChanged(value: String) {
+        _uiState.update { it.copy(guestTokenInput = value, guestTokenError = null, guestStartError = null) }
+    }
+
+    fun onGuestNameChanged(value: String) {
+        _uiState.update { it.copy(guestNameInput = value, guestNameError = null, guestStartError = null) }
     }
 
     fun checkSavedSession() {
@@ -150,6 +162,49 @@ class AuthViewModel @Inject constructor(
         _uiState.update { it.copy(isRegistered = false) }
     }
 
+    fun consumeGuestNavigation() {
+        _uiState.update { it.copy(guestStartedSession = null) }
+    }
+
+    fun startGuestByToken() {
+        val state = _uiState.value
+        val token = state.guestTokenInput.trim()
+        val guestName = state.guestNameInput.trim()
+
+        val tokenError = if (token.isBlank()) "Введите токен" else null
+        val guestNameError = if (guestName.isBlank()) "Введите имя гостя" else null
+        if (tokenError != null || guestNameError != null) {
+            _uiState.update { it.copy(guestTokenError = tokenError, guestNameError = guestNameError) }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, guestStartError = null) }
+            runCatching {
+                val preview = testSessionRepository.previewToken(token)
+                when {
+                    !preview.valid -> error("Токен не найден")
+                    preview.used -> error("Токен уже использован")
+                    preview.requiresAuth -> error("Этот токен доступен только авторизованному кандидату")
+                }
+
+                val startedSession = testSessionRepository.startGuestByToken(token, guestName)
+                val next = testSessionRepository.getNextQuestion(startedSession.sessionId)
+                StartedTestSession(
+                    sessionId = startedSession.sessionId,
+                    category = preview.category ?: startedSession.category,
+                    firstQuestion = next.question ?: error("Не удалось загрузить первый вопрос"),
+                    guestSession = startedSession.guestSession,
+                    guestSessionKey = startedSession.guestSessionKey,
+                )
+            }.onSuccess { startedSession ->
+                _uiState.update { it.copy(isLoading = false, guestStartedSession = startedSession) }
+            }.onFailure { error ->
+                _uiState.update { it.copy(isLoading = false, guestStartError = error.toGuestUiMessage()) }
+            }
+        }
+    }
+
     private fun validateLogin(): Boolean {
         val state = _uiState.value
         var isValid = true
@@ -213,4 +268,9 @@ class AuthViewModel @Inject constructor(
 
         return isValid
     }
+}
+
+private fun Throwable.toGuestUiMessage(): String = when (this) {
+    is IOException -> "Ошибка сети. Проверьте подключение и попробуйте снова."
+    else -> message ?: "Не удалось начать тест"
 }

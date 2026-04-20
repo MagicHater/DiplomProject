@@ -1,5 +1,6 @@
 package com.example.diplomproject.data.repository
 
+import com.example.diplomproject.data.local.SessionManager
 import com.example.diplomproject.data.remote.AppApi
 import com.example.diplomproject.data.remote.ControllerTokenRequestDto
 import com.example.diplomproject.data.remote.ControllerTokenResponseDto
@@ -11,6 +12,7 @@ import com.example.diplomproject.data.remote.ScaleScoresDto
 import com.example.diplomproject.data.remote.SessionProgressDto
 import com.example.diplomproject.data.remote.SessionQuestionDto
 import com.example.diplomproject.data.remote.StartCandidateByTokenRequestDto
+import com.example.diplomproject.data.remote.StartGuestByTokenRequestDto
 import com.example.diplomproject.data.remote.SubmitAnswerRequestDto
 import com.example.diplomproject.data.remote.SubmitAnswerResponseDto
 import com.example.diplomproject.data.remote.TestCategoryDto
@@ -27,6 +29,7 @@ import com.example.diplomproject.domain.model.TestCategory
 import com.example.diplomproject.domain.model.TestQuestion
 import com.example.diplomproject.domain.model.TestQuestionOption
 import com.example.diplomproject.domain.model.TokenPreview
+import com.example.diplomproject.domain.model.TokenSessionStartResult
 import com.example.diplomproject.domain.repository.TestSessionRepository
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,18 +37,30 @@ import javax.inject.Singleton
 @Singleton
 class TestSessionRepositoryImpl @Inject constructor(
     private val appApi: AppApi,
+    private val sessionManager: SessionManager,
 ) : TestSessionRepository {
     override suspend fun getCategories(): List<TestCategory> = appApi.getTestCategories().map { it.toDomain() }
 
     override suspend fun createSession(categoryId: String): String {
+        sessionManager.clearGuestSessionKey()
         return appApi.createTestSession(CreateTestSessionRequestDto(categoryId)).sessionId
     }
 
     override suspend fun previewToken(token: String): TokenPreview =
         appApi.previewToken(TokenPreviewRequestDto(token)).toDomain()
 
+    override suspend fun startGuestByToken(token: String, guestName: String): TokenSessionStartResult {
+        val response = appApi.startGuestByToken(StartGuestByTokenRequestDto(token, guestName))
+        val guestSessionKey = response.guestSessionKey
+        require(!guestSessionKey.isNullOrBlank()) { "Сервер не вернул guestSessionKey" }
+        sessionManager.saveGuestSessionKey(guestSessionKey)
+        return response.toStartResult()
+    }
+
     override suspend fun startCandidateByToken(token: String): String =
-        appApi.startCandidateByToken(StartCandidateByTokenRequestDto(token)).sessionId
+        appApi.startCandidateByToken(StartCandidateByTokenRequestDto(token)).sessionId.also {
+            sessionManager.clearGuestSessionKey()
+        }
 
     override suspend fun createControllerToken(categoryId: String): ControllerTokenItem =
         appApi.createControllerToken(ControllerTokenRequestDto(categoryId)).toDomain()
@@ -69,7 +84,11 @@ class TestSessionRepositoryImpl @Inject constructor(
 
     override suspend fun getResult(sessionId: String): FinishedSessionResult = appApi.getResult(sessionId).toDomain()
 
-    override suspend fun finishSession(sessionId: String): FinishedSessionResult = appApi.finishSession(sessionId).toDomain()
+    override suspend fun finishSession(sessionId: String): FinishedSessionResult {
+        val result = appApi.finishSession(sessionId).toDomain()
+        sessionManager.clearGuestSessionKey()
+        return result
+    }
 }
 
 private fun TestCategoryDto.toDomain(): TestCategory = TestCategory(id, code, name, description)
@@ -89,7 +108,15 @@ private fun SubmitAnswerResponseDto.toDomain(): SubmitAnswerResult = SubmitAnswe
 )
 
 private fun com.example.diplomproject.data.remote.TokenPreviewResponseDto.toDomain(): TokenPreview =
-    TokenPreview(valid = valid, used = used, category = category?.toDomain())
+    TokenPreview(valid = valid, used = used, category = category?.toDomain(), requiresAuth = requiresAuth)
+
+private fun com.example.diplomproject.data.remote.CreateTestSessionResponseDto.toStartResult(): TokenSessionStartResult =
+    TokenSessionStartResult(
+        sessionId = sessionId,
+        category = category.toDomain(),
+        guestSession = guestSession,
+        guestSessionKey = guestSessionKey,
+    )
 
 private fun SessionProgressDto.toDomain(): AnswerProgress = AnswerProgress(
     answeredQuestions = answeredQuestions,
