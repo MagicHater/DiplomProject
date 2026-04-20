@@ -2,6 +2,26 @@ package com.example.diplomproject.domain.model
 
 import java.io.Serializable
 
+data class TestCategory(
+    val id: String,
+    val code: String,
+    val name: String,
+    val description: String? = null,
+) : Serializable
+
+data class ControllerTokenItem(
+    val token: String,
+    val category: TestCategory,
+    val createdAt: String,
+    val isUsed: Boolean,
+) : Serializable
+
+data class TokenPreview(
+    val valid: Boolean,
+    val used: Boolean,
+    val category: TestCategory? = null,
+) : Serializable
+
 data class TestQuestionOption(
     val optionId: String,
     val order: Int,
@@ -18,7 +38,10 @@ data class TestQuestion(
 
 data class StartedTestSession(
     val sessionId: String,
+    val category: TestCategory,
     val firstQuestion: TestQuestion,
+    val guestSession: Boolean = false,
+    val guestSessionKey: String? = null,
 ) : Serializable
 
 data class NextQuestionPayload(

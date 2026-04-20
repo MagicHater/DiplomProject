@@ -23,6 +23,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -40,6 +41,9 @@ import java.time.format.DateTimeFormatter
 fun CandidateHomeScreen(
     uiState: CandidateHomeUiState,
     onStartTestClick: () -> Unit,
+    onCategorySelected: (String) -> Unit,
+    onTokenInputChanged: (String) -> Unit,
+    onStartByTokenClick: () -> Unit,
     onResultClick: () -> Unit,
     onHistoryClick: () -> Unit,
     onLogoutClick: () -> Unit,
@@ -76,6 +80,34 @@ fun CandidateHomeScreen(
                         actionLabel = "Повторить",
                         onActionClick = onStartTestClick,
                     )
+                }
+            }
+
+            item {
+                Text("Категория теста", style = MaterialTheme.typography.titleSmall)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    uiState.categories.forEach { category ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(
+                                selected = uiState.selectedCategoryId == category.id,
+                                onClick = { onCategorySelected(category.id) },
+                            )
+                            Text(category.name)
+                        }
+                    }
+                }
+            }
+
+            item {
+                OutlinedTextField(
+                    value = uiState.tokenInput,
+                    onValueChange = onTokenInputChanged,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Токен доступа") },
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(onClick = onStartByTokenClick, modifier = Modifier.fillMaxWidth()) {
+                    Text("Пройти по токену")
                 }
             }
 
@@ -126,6 +158,9 @@ fun CandidateHomeScreen(
 
 @Composable
 fun ControllerHomeScreen(
+    uiState: ControllerHomeUiState,
+    onCategorySelected: (String) -> Unit,
+    onGenerateTokenClick: () -> Unit,
     onCandidateListClick: () -> Unit,
     onHistoryClick: () -> Unit,
     onLogoutClick: () -> Unit,
@@ -154,6 +189,23 @@ fun ControllerHomeScreen(
                 subtitle = "Сводка завершённых сессий и доступ к полным отчётам",
                 onClick = onHistoryClick,
             )
+
+            Text("Генерация токена", style = MaterialTheme.typography.titleMedium)
+            uiState.categories.forEach { category ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(
+                        selected = uiState.selectedCategoryId == category.id,
+                        onClick = { onCategorySelected(category.id) },
+                    )
+                    Text(category.name)
+                }
+            }
+            Button(onClick = onGenerateTokenClick, modifier = Modifier.fillMaxWidth(), enabled = !uiState.isLoading) {
+                Text("Сгенерировать токен")
+            }
+            if (uiState.generatedToken.isNotBlank()) {
+                Text("Токен: ${uiState.generatedToken}")
+            }
 
             Spacer(modifier = Modifier.weight(1f))
 

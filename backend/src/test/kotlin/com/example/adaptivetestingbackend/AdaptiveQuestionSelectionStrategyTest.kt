@@ -1,6 +1,7 @@
 package com.example.adaptivetestingbackend
 
 import com.example.adaptivetestingbackend.entity.QuestionEntity
+import com.example.adaptivetestingbackend.entity.TestCategoryEntity
 import com.example.adaptivetestingbackend.service.testsession.AdaptiveQuestionSelectionStrategy
 import com.example.adaptivetestingbackend.service.testsession.AdaptiveSessionState
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -77,6 +78,8 @@ class AdaptiveQuestionSelectionStrategyTest {
         assertEquals(available.id, selected?.id)
     }
 
+    private val category = TestCategoryEntity(code = "MARKETING", name = "Маркетолог")
+
     private fun question(priority: Int, weights: String): QuestionEntity =
         QuestionEntity(
             id = UUID.randomUUID(),
@@ -87,5 +90,6 @@ class AdaptiveQuestionSelectionStrategyTest {
             isActive = true,
             createdAt = OffsetDateTime.now(),
             updatedAt = OffsetDateTime.now(),
+            category = category,
         )
 }

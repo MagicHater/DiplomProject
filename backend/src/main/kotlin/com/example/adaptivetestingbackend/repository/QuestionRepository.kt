@@ -9,5 +9,9 @@ interface QuestionRepository : JpaRepository<QuestionEntity, UUID> {
 
     fun findByIsActiveTrueOrderByPriorityDescDifficultyAscCreatedAtAsc(): List<QuestionEntity>
 
+    fun findByIsActiveTrueAndCategoryIdOrderByPriorityDescDifficultyAscCreatedAtAsc(categoryId: UUID): List<QuestionEntity>
+
     fun countByIsActiveTrue(): Int
+
+    fun countByIsActiveTrueAndCategoryId(categoryId: UUID): Int
 }
