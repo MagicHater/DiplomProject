@@ -28,25 +28,28 @@ class ControllerTestManagementController(
     @PostMapping("/tokens")
     fun createToken(
         @RequestHeader(name = "Authorization", required = false) authorization: String?,
+        @RequestHeader(name = "X-App-Jwt", required = false) appJwt: String?,
         @Valid @RequestBody request: CreateControllerTokenRequest,
     ): CreateControllerTokenResponse =
-        controllerTokenService.createToken(extractEmail(authorization), request.categoryId!!)
+        controllerTokenService.createToken(extractEmail(authorization, appJwt), request.categoryId!!)
 
     @GetMapping("/tokens")
     fun myTokens(
         @RequestHeader(name = "Authorization", required = false) authorization: String?,
+        @RequestHeader(name = "X-App-Jwt", required = false) appJwt: String?,
     ): List<ControllerTokenListItemResponse> =
-        controllerTokenService.getControllerTokenHistory(extractEmail(authorization))
+        controllerTokenService.getControllerTokenHistory(extractEmail(authorization, appJwt))
 
-    private fun extractEmail(authorization: String?): String {
-        if (authorization.isNullOrBlank() || !authorization.startsWith("Bearer ")) {
-            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing bearer token")
+    private fun extractEmail(authorization: String?, appJwt: String?): String {
+        val token = when {
+            !appJwt.isNullOrBlank() -> appJwt.trim()
+            !authorization.isNullOrBlank() && authorization.startsWith("Bearer ") -> authorization.removePrefix("Bearer ").trim()
+            else -> throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing token")
         }
 
-        val token = authorization.removePrefix("Bearer ").trim()
         return runCatching { jwtService.parseClaims(token).subject }
             .getOrElse {
-                throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid bearer token")
+                throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token")
             }
     }
 }
