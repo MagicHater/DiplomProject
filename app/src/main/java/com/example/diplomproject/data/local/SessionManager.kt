@@ -49,8 +49,13 @@ class SessionManager @Inject constructor(
     suspend fun getGuestSessionKey(): String? = guestSessionKeyFlow.firstOrNull()
 
     suspend fun saveToken(token: String) {
+        val normalizedToken = token
+            .trim()
+            .removePrefix("Bearer ")
+            .trim()
+
         context.authDataStore.edit { preferences ->
-            preferences[tokenKey] = token
+            preferences[tokenKey] = normalizedToken
             preferences.remove(guestSessionKey)
         }
     }

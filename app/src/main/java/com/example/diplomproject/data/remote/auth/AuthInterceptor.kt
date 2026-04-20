@@ -18,9 +18,7 @@ class AuthInterceptor @Inject constructor(
 
         val explicitAuthHeader = originalRequest.header("Authorization")
         if (!originalRequest.shouldSkipAuthHeader() && explicitAuthHeader.isNullOrBlank()) {
-            val token = runBlocking { sessionManager.tokenFlow.firstOrNull() }
-                ?.trim()
-                ?.takeIf { it.isNotBlank() }
+            val token = runBlocking { sessionManager.tokenFlow.firstOrNull() }.normalizeJwtToken()
 
             if (!token.isNullOrBlank()) {
                 requestBuilder = requestBuilder.header("Authorization", "Bearer $token")
@@ -47,3 +45,10 @@ private fun okhttp3.Request.shouldAttachGuestSessionHeader(): Boolean {
     val path = url.encodedPath
     return path.startsWith("/test-sessions/")
 }
+
+private fun String?.normalizeJwtToken(): String? =
+    this
+        ?.trim()
+        ?.removePrefix("Bearer ")
+        ?.trim()
+        ?.takeIf { it.isNotBlank() }
