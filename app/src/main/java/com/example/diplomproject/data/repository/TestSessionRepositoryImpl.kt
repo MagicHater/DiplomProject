@@ -40,10 +40,10 @@ class TestSessionRepositoryImpl @Inject constructor(
     private val sessionManager: SessionManager,
 ) : TestSessionRepository {
 
-    private suspend fun authHeader(): String {
+    private suspend fun jwtToken(): String {
         val token = sessionManager.getToken()
         require(!token.isNullOrBlank()) { "Нет токена авторизации" }
-        return "Bearer $token"
+        return token
     }
 
     override suspend fun getCategories(): List<TestCategory> = appApi.getTestCategories().map { it.toDomain() }
@@ -70,10 +70,10 @@ class TestSessionRepositoryImpl @Inject constructor(
         }
 
     override suspend fun createControllerToken(categoryId: String): ControllerTokenItem =
-        appApi.createControllerToken(authHeader(), ControllerTokenRequestDto(categoryId)).toDomain()
+        appApi.createControllerToken(jwtToken(), ControllerTokenRequestDto(categoryId)).toDomain()
 
     override suspend fun getControllerTokens(): List<ControllerTokenItem> =
-        appApi.getControllerTokens(authHeader()).map { it.toDomain() }
+        appApi.getControllerTokens(jwtToken()).map { it.toDomain() }
 
     override suspend fun getNextQuestion(sessionId: String): NextQuestionPayload {
         val response = appApi.getNextQuestion(sessionId)
