@@ -111,3 +111,22 @@ data class ControllerTokenResultHistoryItem(
     val summary: String,
     val scores: ScaleScores,
 ) : Serializable
+
+data class ControllerParticipantListItem(
+    val participantId: String,
+    val participantType: String,
+    val participantKey: String,
+    val displayName: String,
+    val email: String? = null,
+    val completedSessionsCount: Long,
+    val lastCompletedAt: String? = null,
+) : Serializable
+
+data class ControllerParticipantResults(
+    val participantId: String,
+    val participantType: String,
+    val participantKey: String,
+    val displayName: String,
+    val email: String? = null,
+    val sessions: List<CandidateResultHistoryItem>,
+) : Serializable

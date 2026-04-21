@@ -5,6 +5,7 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface AppApi {
     @GET("health")
@@ -41,6 +42,15 @@ interface AppApi {
 
     @GET("token-management/results/{sessionId}")
     suspend fun getControllerTokenResult(@Path("sessionId") sessionId: String): FinishSessionResponseDto
+
+    @GET("controller/candidates")
+    suspend fun getControllerParticipants(): List<ControllerParticipantListItemResponseDto>
+
+    @GET("controller/candidates/results")
+    suspend fun getControllerParticipantResults(
+        @Query("participantType") participantType: String,
+        @Query("participantKey") participantKey: String,
+    ): ControllerParticipantResultsResponseDto
 
     @GET("test-sessions/{sessionId}/next-question")
     suspend fun getNextQuestion(

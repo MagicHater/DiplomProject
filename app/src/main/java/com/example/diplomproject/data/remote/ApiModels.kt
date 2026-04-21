@@ -154,3 +154,22 @@ data class ControllerTokenResultListItemResponseDto(
     @SerialName("summary") val summary: String,
     @SerialName("scores") val scores: ScaleScoresDto,
 )
+
+@Serializable
+data class ControllerParticipantListItemResponseDto(
+    @SerialName("participantId") val participantId: String,
+    @SerialName("participantType") val participantType: String,
+    @SerialName("displayName") val displayName: String,
+    @SerialName("email") val email: String? = null,
+    @SerialName("completedSessionsCount") val completedSessionsCount: Long,
+    @SerialName("lastCompletedAt") val lastCompletedAt: String? = null,
+)
+
+@Serializable
+data class ControllerParticipantResultsResponseDto(
+    @SerialName("participantId") val participantId: String,
+    @SerialName("participantType") val participantType: String,
+    @SerialName("displayName") val displayName: String,
+    @SerialName("email") val email: String? = null,
+    @SerialName("sessions") val sessions: List<MyResultListItemResponseDto>,
+)

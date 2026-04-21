@@ -2,6 +2,8 @@ package com.example.diplomproject.domain.repository
 
 import com.example.diplomproject.domain.model.CandidateResultHistoryItem
 import com.example.diplomproject.domain.model.ControllerTokenItem
+import com.example.diplomproject.domain.model.ControllerParticipantListItem
+import com.example.diplomproject.domain.model.ControllerParticipantResults
 import com.example.diplomproject.domain.model.ControllerTokenResultHistoryItem
 import com.example.diplomproject.domain.model.FinishedSessionResult
 import com.example.diplomproject.domain.model.NextQuestionPayload
@@ -19,6 +21,8 @@ interface TestSessionRepository {
     suspend fun createControllerToken(categoryId: String): ControllerTokenItem
     suspend fun getControllerTokens(): List<ControllerTokenItem>
     suspend fun getControllerTokenResults(): List<ControllerTokenResultHistoryItem>
+    suspend fun getControllerParticipants(): List<ControllerParticipantListItem>
+    suspend fun getControllerParticipantResults(participantType: String, participantKey: String): ControllerParticipantResults
     suspend fun getNextQuestion(sessionId: String): NextQuestionPayload
     suspend fun submitAnswer(sessionId: String, snapshotId: String, selectedOptionId: String): SubmitAnswerResult
     suspend fun getMyResults(): List<CandidateResultHistoryItem>

@@ -20,5 +20,11 @@ sealed class AppDestination(val route: String) {
     data object GuestComplete : AppDestination("guest_complete")
     data object History : AppDestination("history")
     data object CandidateList : AppDestination("candidate_list")
-    data object CandidateDetails : AppDestination("candidate_details")
+    data object CandidateDetails : AppDestination("candidate_details/{participantType}/{participantKey}") {
+        const val participantTypeArg = "participantType"
+        const val participantKeyArg = "participantKey"
+
+        fun createRoute(participantType: String, participantKey: String): String =
+            "candidate_details/$participantType/$participantKey"
+    }
 }

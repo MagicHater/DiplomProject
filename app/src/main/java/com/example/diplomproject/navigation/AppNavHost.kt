@@ -1,5 +1,6 @@
 package com.example.diplomproject.navigation
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -22,9 +23,11 @@ import com.example.diplomproject.domain.model.UserRole
 import com.example.diplomproject.ui.screens.AppSessionState
 import com.example.diplomproject.ui.screens.AuthViewModel
 import com.example.diplomproject.ui.screens.CandidateDetailsScreen
+import com.example.diplomproject.ui.screens.CandidateDetailsViewModel
 import com.example.diplomproject.ui.screens.CandidateHomeScreen
 import com.example.diplomproject.ui.screens.CandidateHomeViewModel
 import com.example.diplomproject.ui.screens.CandidateListScreen
+import com.example.diplomproject.ui.screens.CandidateListViewModel
 import com.example.diplomproject.ui.screens.ControllerHomeScreen
 import com.example.diplomproject.ui.screens.ControllerHomeViewModel
 import com.example.diplomproject.ui.screens.GuestCompletionScreen
@@ -274,18 +277,32 @@ fun AppNavHost(
         }
 
         composable(AppDestination.CandidateList.route) {
+            val candidateListViewModel: CandidateListViewModel = hiltViewModel()
+            val candidateListUiState by candidateListViewModel.uiState.collectAsState()
+            LaunchedEffect(Unit) { candidateListViewModel.load() }
             CandidateListScreen(
-                onCandidateDetailsClick = {
-                    navController.navigate(AppDestination.CandidateDetails.route)
+                uiState = candidateListUiState,
+                onCandidateDetailsClick = { participantType, participantKey ->
+                    navController.navigate(
+                        AppDestination.CandidateDetails.createRoute(
+                            participantType = participantType,
+                            participantKey = Uri.encode(participantKey),
+                        ),
+                    )
                 },
                 onBackToControllerHomeClick = {
                     navController.navigate(AppDestination.ControllerHome.route)
                 },
+                onRetryClick = candidateListViewModel::load,
             )
         }
 
         composable(AppDestination.CandidateDetails.route) {
+            val candidateDetailsViewModel: CandidateDetailsViewModel = hiltViewModel()
+            val candidateDetailsUiState by candidateDetailsViewModel.uiState.collectAsState()
+            LaunchedEffect(Unit) { candidateDetailsViewModel.load() }
             CandidateDetailsScreen(
+                uiState = candidateDetailsUiState,
                 onBackToCandidateListClick = {
                     navController.navigate(AppDestination.CandidateList.route)
                 },

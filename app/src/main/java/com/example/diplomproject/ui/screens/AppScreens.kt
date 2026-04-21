@@ -681,8 +681,10 @@ private fun String.formatIsoDateTime(): String = runCatching {
 
 @Composable
 fun CandidateListScreen(
-    onCandidateDetailsClick: () -> Unit,
+    uiState: CandidateListUiState,
+    onCandidateDetailsClick: (participantType: String, participantKey: String) -> Unit,
     onBackToControllerHomeClick: () -> Unit,
+    onRetryClick: () -> Unit,
 ) {
     AppScreenScaffold(title = "Кандидаты", onBackClick = onBackToControllerHomeClick) { innerPadding ->
         Column(
@@ -697,22 +699,44 @@ fun CandidateListScreen(
                 style = MaterialTheme.typography.bodyMedium,
             )
 
-            listOf(
-                "Иван Петров" to "3 завершённых сессии",
-                "Анна Смирнова" to "1 завершённая сессия",
-                "Дмитрий Волков" to "Сессии в обработке",
-            ).forEach { (name, status) ->
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Text(name, style = MaterialTheme.typography.titleMedium)
-                        Text(status, style = MaterialTheme.typography.bodySmall)
-                        OutlinedButton(onClick = onCandidateDetailsClick, modifier = Modifier.fillMaxWidth()) {
-                            Text("Открыть карточку")
+            when {
+                uiState.isLoading -> {
+                    CircularProgressIndicator()
+                }
+                uiState.errorMessage != null -> {
+                    Text(uiState.errorMessage, color = MaterialTheme.colorScheme.error)
+                    OutlinedButton(onClick = onRetryClick) { Text("Повторить") }
+                }
+                uiState.participants.isEmpty() -> {
+                    Text("Пока нет завершённых тестов по вашим токенам.", style = MaterialTheme.typography.bodyMedium)
+                }
+                else -> {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        items(uiState.participants, key = { it.participantId }) { participant ->
+                            Card(modifier = Modifier.fillMaxWidth()) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Text(participant.displayName, style = MaterialTheme.typography.titleMedium)
+                                    participant.email?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                                    val typeLabel = if (participant.participantType == "guest") "Гость" else "Кандидат"
+                                    Text(
+                                        "$typeLabel • Завершённых сессий: ${participant.completedSessionsCount}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                    OutlinedButton(
+                                        onClick = {
+                                            onCandidateDetailsClick(participant.participantType, participant.participantKey)
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                    ) {
+                                        Text("Открыть карточку")
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -722,15 +746,46 @@ fun CandidateListScreen(
 }
 
 @Composable
-fun CandidateDetailsScreen(onBackToCandidateListClick: () -> Unit) {
+fun CandidateDetailsScreen(
+    uiState: CandidateDetailsUiState,
+    onBackToCandidateListClick: () -> Unit,
+) {
     AppScreenScaffold(title = "Карточка кандидата", onBackClick = onBackToCandidateListClick) { innerPadding ->
-        LazyColumn(
+        when {
+            uiState.isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center,
+                ) { CircularProgressIndicator() }
+            }
+            uiState.errorMessage != null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(16.dp),
+                ) {
+                    Text(uiState.errorMessage, color = MaterialTheme.colorScheme.error)
+                }
+            }
+            uiState.participant == null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(16.dp),
+                ) { Text("Нет данных по участнику") }
+            }
+            else -> LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            val participant = uiState.participant
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(
@@ -739,13 +794,17 @@ fun CandidateDetailsScreen(onBackToCandidateListClick: () -> Unit) {
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        Text("Профиль кандидата", style = MaterialTheme.typography.titleMedium)
-                        Text("ФИО: Иван Петров", style = MaterialTheme.typography.bodyMedium)
-                        Text("Статус: активный участник", style = MaterialTheme.typography.bodyMedium)
+                        Text("Профиль участника", style = MaterialTheme.typography.titleMedium)
+                        Text("Имя: ${participant.displayName}", style = MaterialTheme.typography.bodyMedium)
+                        participant.email?.let { Text("Email: $it", style = MaterialTheme.typography.bodyMedium) }
+                        Text(
+                            "Тип: ${if (participant.participantType == "guest") "Гость" else "Кандидат"}",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
                     }
                 }
             }
-            item {
+            items(participant.sessions, key = { it.sessionId }) { session ->
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(
                         modifier = Modifier
@@ -753,14 +812,15 @@ fun CandidateDetailsScreen(onBackToCandidateListClick: () -> Unit) {
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text("Результаты и сессии", style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            "Динамика по шкалам, ключевые выводы и история прохождений отображаются в этом разделе.",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
+                        Text(session.completedAt.formatIsoDateTime(), style = MaterialTheme.typography.labelMedium)
+                        Text(session.summary, style = MaterialTheme.typography.titleMedium)
+                        compactScoreItems(session.scores).forEach { (title, value) ->
+                            CompactScoreRow(title = title, value = value)
+                        }
                     }
                 }
             }
+        }
         }
     }
 }

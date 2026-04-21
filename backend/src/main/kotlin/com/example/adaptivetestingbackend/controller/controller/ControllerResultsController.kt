@@ -1,13 +1,14 @@
 package com.example.adaptivetestingbackend.controller.controller
 
-import com.example.adaptivetestingbackend.dto.controller.ControllerCandidateListItemResponse
-import com.example.adaptivetestingbackend.dto.controller.ControllerCandidateResultsResponse
+import com.example.adaptivetestingbackend.dto.controller.ControllerParticipantListItemResponse
+import com.example.adaptivetestingbackend.dto.controller.ControllerParticipantResultsResponse
 import com.example.adaptivetestingbackend.dto.testsession.ResultProfileResponse
 import com.example.adaptivetestingbackend.service.testsession.ControllerResultsService
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
@@ -20,7 +21,7 @@ class ControllerResultsController(
     @GetMapping("/candidates")
     fun getCandidates(
         @AuthenticationPrincipal userDetails: UserDetails,
-    ): List<ControllerCandidateListItemResponse> {
+    ): List<ControllerParticipantListItemResponse> {
         return controllerResultsService.getCandidates(userDetails.username)
     }
 
@@ -28,8 +29,21 @@ class ControllerResultsController(
     fun getCandidateResults(
         @PathVariable candidateId: UUID,
         @AuthenticationPrincipal userDetails: UserDetails,
-    ): ControllerCandidateResultsResponse {
+    ): ControllerParticipantResultsResponse {
         return controllerResultsService.getCandidateResults(candidateId, userDetails.username)
+    }
+
+    @GetMapping("/candidates/results")
+    fun getParticipantResults(
+        @RequestParam participantType: String,
+        @RequestParam participantKey: String,
+        @AuthenticationPrincipal userDetails: UserDetails,
+    ): ControllerParticipantResultsResponse {
+        return controllerResultsService.getCandidateResults(
+            participantType = participantType,
+            participantKey = participantKey,
+            controllerEmail = userDetails.username,
+        )
     }
 
     @GetMapping("/results/{sessionId}")
