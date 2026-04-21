@@ -70,13 +70,19 @@ class TestSessionRepositoryImpl @Inject constructor(
         appApi.getControllerTokens().map { it.toDomain() }
 
     override suspend fun getNextQuestion(sessionId: String): NextQuestionPayload {
-        val response = appApi.getNextQuestion(sessionId)
+        val guestSessionKey = sessionManager.getGuestSessionKey()
+        val response = appApi.getNextQuestion(
+            sessionId = sessionId,
+            guestSessionKey = guestSessionKey,
+        )
         return NextQuestionPayload(response.hasNextQuestion, response.question?.toDomain())
     }
 
     override suspend fun submitAnswer(sessionId: String, snapshotId: String, selectedOptionId: String): SubmitAnswerResult {
+        val guestSessionKey = sessionManager.getGuestSessionKey()
         return appApi.submitAnswer(
             sessionId = sessionId,
+            guestSessionKey = guestSessionKey,
             request = SubmitAnswerRequestDto(snapshotId, selectedOptionId),
         ).toDomain()
     }
@@ -86,7 +92,11 @@ class TestSessionRepositoryImpl @Inject constructor(
     override suspend fun getResult(sessionId: String): FinishedSessionResult = appApi.getResult(sessionId).toDomain()
 
     override suspend fun finishSession(sessionId: String): FinishedSessionResult {
-        val result = appApi.finishSession(sessionId).toDomain()
+        val guestSessionKey = sessionManager.getGuestSessionKey()
+        val result = appApi.finishSession(
+            sessionId = sessionId,
+            guestSessionKey = guestSessionKey,
+        ).toDomain()
         sessionManager.clearGuestSessionKey()
         return result
     }

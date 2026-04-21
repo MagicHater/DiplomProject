@@ -1,12 +1,14 @@
 package com.example.adaptivetestingbackend.dto.token
 
 import com.example.adaptivetestingbackend.dto.testsession.TestCategoryResponse
+import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.NotBlank
 import java.time.OffsetDateTime
 import java.util.UUID
 
-data class CreateControllerTokenRequest(
+data class CreateControllerTokenRequest @JsonCreator constructor(
+    @param:JsonProperty("categoryId")
     val categoryId: UUID,
 )
 
@@ -27,7 +29,8 @@ data class ControllerTokenListItemResponse(
     val usedAt: OffsetDateTime?,
 )
 
-data class TokenPreviewRequest(
+data class TokenPreviewRequest @JsonCreator constructor(
+    @param:JsonProperty("token")
     @field:NotBlank
     val token: String,
 )
@@ -39,14 +42,17 @@ data class TokenPreviewResponse(
     val requiresAuth: Boolean,
 )
 
-data class StartGuestByTokenRequest(
+data class StartGuestByTokenRequest @JsonCreator constructor(
+    @param:JsonProperty("token")
     @field:NotBlank
     val token: String,
+    @param:JsonProperty("guestName")
     @field:NotBlank
     val guestName: String,
 )
 
-data class StartCandidateByTokenRequest(
+data class StartCandidateByTokenRequest @JsonCreator constructor(
+    @param:JsonProperty("token")
     @field:NotBlank
     val token: String,
 )
