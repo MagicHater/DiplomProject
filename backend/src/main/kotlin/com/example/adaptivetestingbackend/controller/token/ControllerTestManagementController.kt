@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 
 @RestController
-@RequestMapping("/controller/test-management")
+@RequestMapping("/token-management")
 class ControllerTestManagementController(
     private val controllerTokenService: ControllerTokenService,
     private val jwtService: JwtService,
