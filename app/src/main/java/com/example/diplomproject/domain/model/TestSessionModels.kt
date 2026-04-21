@@ -100,3 +100,14 @@ data class CandidateResultHistoryItem(
     val summary: String,
     val scores: ScaleScores,
 ) : Serializable
+
+
+data class ControllerTokenResultHistoryItem(
+    val sessionId: String,
+    val completedAt: String,
+    val category: TestCategory,
+    val participantType: String,
+    val participantDisplayName: String? = null,
+    val summary: String,
+    val scores: ScaleScores,
+) : Serializable

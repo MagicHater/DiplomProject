@@ -550,28 +550,59 @@ fun HistoryScreen(
                 uiState.errorMessage != null -> ErrorState(uiState.errorMessage, "Повторить", onRetryClick)
                 uiState.infoMessage != null -> EmptyState(uiState.infoMessage)
                 else -> {
+                    val isController = uiState.role == com.example.diplomproject.domain.model.UserRole.Controller
                     LazyColumn(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        items(uiState.items, key = { it.sessionId }) { item ->
-                            Card(modifier = Modifier.fillMaxWidth()) {
-                                Column(
-                                    modifier = Modifier.padding(14.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    Text(item.completedAt.formatIsoDateTime(), style = MaterialTheme.typography.labelMedium)
-                                    Text(item.summary, style = MaterialTheme.typography.titleMedium)
-                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        compactScoreItems(item.scores).forEach { (title, value) ->
-                                            CompactScoreRow(title = title, value = value)
+                        if (isController) {
+                            items(uiState.controllerItems, key = { it.sessionId }) { item ->
+                                Card(modifier = Modifier.fillMaxWidth()) {
+                                    Column(
+                                        modifier = Modifier.padding(14.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        Text(item.completedAt.formatIsoDateTime(), style = MaterialTheme.typography.labelMedium)
+                                        Text(item.category.name, style = MaterialTheme.typography.labelMedium)
+                                        Text(
+                                            text = "Проходил: ${item.participantDisplayName ?: "Неизвестно"} (${item.participantType})",
+                                            style = MaterialTheme.typography.bodySmall,
+                                        )
+                                        Text(item.summary, style = MaterialTheme.typography.titleMedium)
+                                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            compactScoreItems(item.scores).forEach { (title, value) ->
+                                                CompactScoreRow(title = title, value = value)
+                                            }
+                                        }
+                                        OutlinedButton(
+                                            onClick = { onResultClick(item.sessionId) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                        ) {
+                                            Text("Полный отчёт")
                                         }
                                     }
-                                    OutlinedButton(
-                                        onClick = { onResultClick(item.sessionId) },
-                                        modifier = Modifier.fillMaxWidth(),
+                                }
+                            }
+                        } else {
+                            items(uiState.items, key = { it.sessionId }) { item ->
+                                Card(modifier = Modifier.fillMaxWidth()) {
+                                    Column(
+                                        modifier = Modifier.padding(14.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
-                                        Text("Полный отчёт")
+                                        Text(item.completedAt.formatIsoDateTime(), style = MaterialTheme.typography.labelMedium)
+                                        Text(item.summary, style = MaterialTheme.typography.titleMedium)
+                                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            compactScoreItems(item.scores).forEach { (title, value) ->
+                                                CompactScoreRow(title = title, value = value)
+                                            }
+                                        }
+                                        OutlinedButton(
+                                            onClick = { onResultClick(item.sessionId) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                        ) {
+                                            Text("Полный отчёт")
+                                        }
                                     }
                                 }
                             }
@@ -580,7 +611,7 @@ fun HistoryScreen(
                 }
             }
 
-            if (uiState.items.isEmpty()) {
+            if (uiState.items.isEmpty() && uiState.controllerItems.isEmpty()) {
                 Spacer(modifier = Modifier.weight(1f))
             }
 

@@ -66,4 +66,42 @@ interface ResultProfileRepository : JpaRepository<ResultProfileEntity, UUID> {
         @Param("candidateId") candidateId: UUID,
         @Param("status") status: TestSessionStatus,
     ): java.time.OffsetDateTime?
+
+    @Query(
+        """
+        select rp
+        from ResultProfileEntity rp
+        join fetch rp.session s
+        join fetch s.category c
+        left join fetch s.candidate candidate
+        left join fetch s.accessToken t
+        where t.createdBy.id = :controllerId
+          and s.status = :status
+        order by s.completedAt desc
+        """,
+    )
+    fun findCompletedByControllerIdOrderByCompletedAtDesc(
+        @Param("controllerId") controllerId: UUID,
+        @Param("status") status: TestSessionStatus,
+    ): List<ResultProfileEntity>
+
+    @Query(
+        """
+        select rp
+        from ResultProfileEntity rp
+        join fetch rp.session s
+        join fetch s.category c
+        left join fetch s.candidate candidate
+        left join fetch s.accessToken t
+        where s.id = :sessionId
+          and t.createdBy.id = :controllerId
+          and s.status = :status
+        """,
+    )
+    fun findCompletedBySessionIdAndControllerId(
+        @Param("sessionId") sessionId: UUID,
+        @Param("controllerId") controllerId: UUID,
+        @Param("status") status: TestSessionStatus,
+    ): Optional<ResultProfileEntity>
+
 }

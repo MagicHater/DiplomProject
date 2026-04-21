@@ -36,6 +36,12 @@ interface AppApi {
     @GET("token-management/tokens")
     suspend fun getControllerTokens(): List<ControllerTokenResponseDto>
 
+    @GET("token-management/results")
+    suspend fun getControllerTokenResults(): List<ControllerTokenResultListItemResponseDto>
+
+    @GET("token-management/results/{sessionId}")
+    suspend fun getControllerTokenResult(@Path("sessionId") sessionId: String): FinishSessionResponseDto
+
     @GET("test-sessions/{sessionId}/next-question")
     suspend fun getNextQuestion(
         @Path("sessionId") sessionId: String,

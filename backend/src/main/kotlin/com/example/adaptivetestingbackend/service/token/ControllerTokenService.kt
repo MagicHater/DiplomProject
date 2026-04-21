@@ -1,10 +1,13 @@
 package com.example.adaptivetestingbackend.service.token
 
 import com.example.adaptivetestingbackend.dto.testsession.TestCategoryResponse
+import com.example.adaptivetestingbackend.dto.testsession.ResultProfileResponse
 import com.example.adaptivetestingbackend.dto.token.ControllerTokenListItemResponse
+import com.example.adaptivetestingbackend.dto.token.ControllerTokenResultListItemResponse
 import com.example.adaptivetestingbackend.dto.token.CreateControllerTokenResponse
 import com.example.adaptivetestingbackend.entity.RoleName
 import com.example.adaptivetestingbackend.entity.TestAccessTokenEntity
+import com.example.adaptivetestingbackend.repository.ResultProfileRepository
 import com.example.adaptivetestingbackend.repository.TestAccessTokenRepository
 import com.example.adaptivetestingbackend.repository.TestCategoryRepository
 import com.example.adaptivetestingbackend.repository.UserRepository
@@ -19,7 +22,9 @@ class ControllerTokenService(
     private val userRepository: UserRepository,
     private val testCategoryRepository: TestCategoryRepository,
     private val testAccessTokenRepository: TestAccessTokenRepository,
+    private val resultProfileRepository: ResultProfileRepository,
     private val tokenGenerationService: TokenGenerationService,
+    private val resultProfileMapper: com.example.adaptivetestingbackend.service.testsession.ResultProfileMapper,
 ) {
     @Transactional(readOnly = true)
     fun getActiveCategories(): List<TestCategoryResponse> =
@@ -78,19 +83,7 @@ class ControllerTokenService(
 
     @Transactional(readOnly = true)
     fun getControllerTokenHistory(controllerEmail: String): List<ControllerTokenListItemResponse> {
-        val normalizedEmail = controllerEmail.trim().lowercase()
-
-        println("GET_CONTROLLER_TOKENS_EMAIL_RAW = $controllerEmail")
-        println("GET_CONTROLLER_TOKENS_EMAIL_NORMALIZED = $normalizedEmail")
-
-        val controller = userRepository.findByEmail(normalizedEmail)
-            .orElseThrow {
-                println("GET_CONTROLLER_TOKENS_USER_NOT_FOUND = $normalizedEmail")
-                ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found")
-            }
-
-        println("GET_CONTROLLER_TOKENS_USER_FOUND = ${controller.email}")
-        println("GET_CONTROLLER_TOKENS_USER_ROLE = ${controller.role.name}")
+        val controller = getControllerUser(controllerEmail)
 
         return testAccessTokenRepository.findTop20ByCreatedByOrderByCreatedAtDesc(controller)
             .map {
@@ -103,6 +96,72 @@ class ControllerTokenService(
                 )
             }
     }
+
+    @Transactional(readOnly = true)
+    fun getControllerTokenResults(controllerEmail: String): List<ControllerTokenResultListItemResponse> {
+        val controller = getControllerUser(controllerEmail)
+
+        return resultProfileRepository.findCompletedByControllerIdOrderByCompletedAtDesc(
+            controllerId = controller.id,
+            status = com.example.adaptivetestingbackend.entity.TestSessionStatus.COMPLETED,
+        ).map { profile ->
+            val session = profile.session
+            val candidate = session.candidate
+            val participantType = if (candidate != null) "candidate" else "guest"
+            val participantDisplayName = candidate?.email ?: session.guestIdentifier ?: session.accessToken?.usedByGuestDisplayName
+
+            ControllerTokenResultListItemResponse(
+                sessionId = session.id,
+                completedAt = session.completedAt
+                    ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Session completedAt is missing"),
+                category = session.category.toResponse(),
+                participantType = participantType,
+                participantDisplayName = participantDisplayName,
+                summary = profile.summary ?: resultProfileMapper.buildOverallSummary(
+                    com.example.adaptivetestingbackend.service.testsession.ResultCalculationService.CalculatedProfile(
+                        attention = profile.attentionScore,
+                        stressResistance = profile.stressResistanceScore,
+                        responsibility = profile.responsibilityScore,
+                        adaptability = profile.adaptabilityScore,
+                        decisionSpeedAccuracy = profile.decisionSpeedAccuracyScore,
+                    ),
+                ),
+                scores = com.example.adaptivetestingbackend.dto.testsession.ScaleScoresDto(
+                    attention = profile.attentionScore,
+                    stressResistance = profile.stressResistanceScore,
+                    responsibility = profile.responsibilityScore,
+                    adaptability = profile.adaptabilityScore,
+                    decisionSpeedAccuracy = profile.decisionSpeedAccuracyScore,
+                ),
+            )
+        }
+    }
+
+    @Transactional(readOnly = true)
+    fun getControllerTokenResultBySessionId(controllerEmail: String, sessionId: UUID): ResultProfileResponse {
+        val controller = getControllerUser(controllerEmail)
+
+        val profile = resultProfileRepository.findCompletedBySessionIdAndControllerId(
+            sessionId = sessionId,
+            controllerId = controller.id,
+            status = com.example.adaptivetestingbackend.entity.TestSessionStatus.COMPLETED,
+        ).orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Result not found") }
+
+        return resultProfileMapper.toResultProfile(profile)
+    }
+
+    private fun getControllerUser(controllerEmail: String): com.example.adaptivetestingbackend.entity.UserEntity {
+        val normalizedEmail = controllerEmail.trim().lowercase()
+        val controller = userRepository.findByEmail(normalizedEmail)
+            .orElseThrow { ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found") }
+
+        if (controller.role.name != RoleName.CONTROLLER) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Only controller can access token management")
+        }
+
+        return controller
+    }
+
 }
 
 private fun com.example.adaptivetestingbackend.entity.TestCategoryEntity.toResponse() = TestCategoryResponse(
