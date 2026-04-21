@@ -1,20 +1,20 @@
 package com.example.adaptivetestingbackend.dto.token
 
 import com.example.adaptivetestingbackend.dto.testsession.TestCategoryResponse
+import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.NotBlank
-import jakarta.validation.constraints.NotNull
 import java.time.OffsetDateTime
 import java.util.UUID
 
 data class CreateControllerTokenRequest(
-    @field:NotNull
-    val categoryId: UUID?,
+    val categoryId: UUID,
 )
 
 data class CreateControllerTokenResponse(
     val token: String,
     val category: TestCategoryResponse,
     val createdAt: OffsetDateTime,
+    @get:JsonProperty("isUsed")
     val isUsed: Boolean,
 )
 
@@ -22,6 +22,7 @@ data class ControllerTokenListItemResponse(
     val token: String,
     val category: TestCategoryResponse,
     val createdAt: OffsetDateTime,
+    @get:JsonProperty("isUsed")
     val isUsed: Boolean,
     val usedAt: OffsetDateTime?,
 )
