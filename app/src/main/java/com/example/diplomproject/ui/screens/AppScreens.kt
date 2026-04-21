@@ -77,7 +77,6 @@ fun CandidateHomeScreen(
     onStartByTokenClick: () -> Unit,
     onResultClick: () -> Unit,
     onHistoryClick: () -> Unit,
-    onCustomTestsClick: () -> Unit,
     onLogoutClick: () -> Unit,
 ) {
     AppScreenScaffold(title = "Кабинет кандидата") { innerPadding ->
@@ -164,12 +163,6 @@ fun CandidateHomeScreen(
             }
 
             item {
-                OutlinedButton(onClick = onCustomTestsClick, modifier = Modifier.fillMaxWidth()) {
-                    Text("Пользовательские тесты")
-                }
-            }
-
-            item {
                 TextButton(onClick = onResultClick, modifier = Modifier.fillMaxWidth()) {
                     Text("Открыть последний результат")
                 }
@@ -206,7 +199,6 @@ fun ControllerHomeScreen(
     onCreateTestClick: () -> Unit,
     onCandidateListClick: () -> Unit,
     onHistoryClick: () -> Unit,
-    onCustomTestsClick: () -> Unit,
     onLogoutClick: () -> Unit,
 ) {
     val clipboardManager = LocalClipboardManager.current
@@ -220,6 +212,7 @@ fun ControllerHomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -249,7 +242,7 @@ fun ControllerHomeScreen(
             ActionCard(
                 title = "Мои пользовательские тесты",
                 subtitle = "Список, результаты и статистика по вашим пользовательским тестам",
-                onClick = onCustomTestsClick,
+                onClick = onCreateTestClick,
             )
 
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -348,8 +341,6 @@ fun ControllerHomeScreen(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.weight(1f))
 
             TextButton(onClick = onLogoutClick, modifier = Modifier.fillMaxWidth()) {
                 Text("Выйти из аккаунта")

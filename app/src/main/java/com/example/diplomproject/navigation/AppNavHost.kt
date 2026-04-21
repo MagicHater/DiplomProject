@@ -22,19 +22,19 @@ import com.example.diplomproject.domain.model.TestQuestion
 import com.example.diplomproject.domain.model.UserRole
 import com.example.diplomproject.ui.screens.AppSessionState
 import com.example.diplomproject.ui.screens.AuthViewModel
+import com.example.diplomproject.ui.screens.CandidateCustomTestPassScreen
+import com.example.diplomproject.ui.screens.CandidateCustomTestsScreen
 import com.example.diplomproject.ui.screens.CandidateDetailsScreen
 import com.example.diplomproject.ui.screens.CandidateDetailsViewModel
-import com.example.diplomproject.ui.screens.ControllerCustomTestsScreen
-import com.example.diplomproject.ui.screens.ControllerCustomTestStatisticsScreen
-import com.example.diplomproject.ui.screens.ControllerCustomTestResultsScreen
-import com.example.diplomproject.ui.screens.ControllerCustomTestDetailsScreen
-import com.example.diplomproject.ui.screens.ControllerCreateCustomTestScreen
-import com.example.diplomproject.ui.screens.CandidateCustomTestsScreen
-import com.example.diplomproject.ui.screens.CandidateCustomTestPassScreen
 import com.example.diplomproject.ui.screens.CandidateHomeScreen
 import com.example.diplomproject.ui.screens.CandidateHomeViewModel
 import com.example.diplomproject.ui.screens.CandidateListScreen
 import com.example.diplomproject.ui.screens.CandidateListViewModel
+import com.example.diplomproject.ui.screens.ControllerCreateCustomTestScreen
+import com.example.diplomproject.ui.screens.ControllerCustomTestDetailsScreen
+import com.example.diplomproject.ui.screens.ControllerCustomTestResultsScreen
+import com.example.diplomproject.ui.screens.ControllerCustomTestStatisticsScreen
+import com.example.diplomproject.ui.screens.ControllerCustomTestsScreen
 import com.example.diplomproject.ui.screens.ControllerHomeScreen
 import com.example.diplomproject.ui.screens.ControllerHomeViewModel
 import com.example.diplomproject.ui.screens.GuestCompletionScreen
@@ -133,7 +133,6 @@ fun AppNavHost(
                 onStartByTokenClick = candidateHomeViewModel::startByToken,
                 onResultClick = { navController.navigate(AppDestination.History.route) },
                 onHistoryClick = { navController.navigate(AppDestination.History.route) },
-                onCustomTestsClick = { navController.navigate(AppDestination.CandidateCustomTests.route) },
                 onLogoutClick = { authViewModel.logout() },
             )
         }
@@ -159,7 +158,6 @@ fun AppNavHost(
                 onCreateTestClick = { navController.navigate(AppDestination.ControllerCreateTest.route) },
                 onCandidateListClick = { navController.navigate(AppDestination.CandidateList.route) },
                 onHistoryClick = { navController.navigate(AppDestination.History.route) },
-                onCustomTestsClick = { navController.navigate(AppDestination.ControllerCustomTests.route) },
                 onLogoutClick = { authViewModel.logout() },
             )
         }
