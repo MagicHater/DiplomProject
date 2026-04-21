@@ -39,12 +39,13 @@ class SecurityConfig(
                     "/swagger-ui/**",
                     "/swagger-ui.html",
                 ).permitAll()
+
                     .requestMatchers("/token-access/preview", "/token-access/start-guest").permitAll()
                     .requestMatchers("/token-access/start-candidate").hasRole("CANDIDATE")
                     .requestMatchers("/me/results", "/me/results/**").hasRole("CANDIDATE")
 
-                    // Ручная JWT-валидация в контроллере для token-management.
-                    .requestMatchers("/controller/test-management/**").permitAll()
+                    // ВАЖНО: новый путь token-management
+                    .requestMatchers("/token-management/**").permitAll()
 
                     .requestMatchers("/controller/**").hasRole("CONTROLLER")
                     .requestMatchers("/test-sessions/**").permitAll()

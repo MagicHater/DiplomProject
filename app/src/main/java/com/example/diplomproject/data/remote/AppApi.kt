@@ -24,15 +24,15 @@ interface AppApi {
     @POST("token-access/start-candidate")
     suspend fun startCandidateByToken(@Body request: StartCandidateByTokenRequestDto): CreateTestSessionResponseDto
 
-    @GET("controller/test-management/categories")
+    @GET("token-management/categories")
     suspend fun getControllerCategories(): List<TestCategoryDto>
 
-    @POST("controller/test-management/tokens")
+    @POST("token-management/tokens")
     suspend fun createControllerToken(
         @Body request: ControllerTokenRequestDto
     ): ControllerTokenResponseDto
 
-    @GET("controller/test-management/tokens")
+    @GET("token-management/tokens")
     suspend fun getControllerTokens(): List<ControllerTokenResponseDto>
 
     @GET("test-sessions/{sessionId}/next-question")
