@@ -7,6 +7,8 @@ import com.example.diplomproject.data.remote.ControllerTokenResponseDto
 import com.example.diplomproject.data.remote.ControllerTokenResultListItemResponseDto
 import com.example.diplomproject.data.remote.ControllerParticipantListItemResponseDto
 import com.example.diplomproject.data.remote.ControllerParticipantResultsResponseDto
+import com.example.diplomproject.data.remote.ControllerParticipantStatisticsResponseDto
+import com.example.diplomproject.data.remote.ControllerParticipantStatisticsSessionResponseDto
 import com.example.diplomproject.data.remote.CreateTestSessionRequestDto
 import com.example.diplomproject.data.remote.FinishSessionResponseDto
 import com.example.diplomproject.data.remote.MyResultListItemResponseDto
@@ -25,6 +27,8 @@ import com.example.diplomproject.domain.model.CandidateResultHistoryItem
 import com.example.diplomproject.domain.model.ControllerTokenItem
 import com.example.diplomproject.domain.model.ControllerParticipantListItem
 import com.example.diplomproject.domain.model.ControllerParticipantResults
+import com.example.diplomproject.domain.model.ControllerParticipantStatistics
+import com.example.diplomproject.domain.model.ControllerParticipantStatisticsSession
 import com.example.diplomproject.domain.model.ControllerTokenResultHistoryItem
 import com.example.diplomproject.domain.model.FinishedSessionResult
 import com.example.diplomproject.domain.model.NextQuestionPayload
@@ -238,5 +242,24 @@ private fun ControllerParticipantResultsResponseDto.toDomain(): ControllerPartic
         displayName = displayName,
         email = email,
         sessions = sessions.map { it.toDomain() },
+        statistics = statistics?.toDomain(),
     )
 }
+
+private fun ControllerParticipantStatisticsResponseDto.toDomain(): ControllerParticipantStatistics =
+    ControllerParticipantStatistics(
+        participantId = participantId,
+        sessions = sessions.map { it.toDomain() },
+    )
+
+private fun ControllerParticipantStatisticsSessionResponseDto.toDomain(): ControllerParticipantStatisticsSession =
+    ControllerParticipantStatisticsSession(
+        sessionOrder = sessionOrder,
+        sessionId = sessionId,
+        completedAt = completedAt,
+        attention = attention,
+        stressResistance = stressResistance,
+        responsibility = responsibility,
+        adaptability = adaptability,
+        decisionSpeedAccuracy = decisionSpeedAccuracy,
+    )

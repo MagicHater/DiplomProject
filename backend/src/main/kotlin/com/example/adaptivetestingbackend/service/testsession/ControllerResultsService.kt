@@ -2,6 +2,8 @@ package com.example.adaptivetestingbackend.service.testsession
 
 import com.example.adaptivetestingbackend.dto.controller.ControllerParticipantListItemResponse
 import com.example.adaptivetestingbackend.dto.controller.ControllerParticipantResultsResponse
+import com.example.adaptivetestingbackend.dto.controller.ControllerParticipantStatisticsResponse
+import com.example.adaptivetestingbackend.dto.controller.ControllerParticipantStatisticsSessionResponse
 import com.example.adaptivetestingbackend.dto.testsession.ResultProfileResponse
 import com.example.adaptivetestingbackend.entity.RoleName
 import com.example.adaptivetestingbackend.entity.TestSessionStatus
@@ -128,6 +130,23 @@ class ControllerResultsService(
             displayName = displayName,
             email = email,
             sessions = profiles.map { resultProfileMapper.toResultListItem(it) },
+            statistics = ControllerParticipantStatisticsResponse(
+                participantId = "$normalizedType:$participantKey",
+                sessions = profiles
+                    .sortedBy { it.session.completedAt ?: it.session.createdAt }
+                    .mapIndexed { index, profile ->
+                        ControllerParticipantStatisticsSessionResponse(
+                            sessionOrder = index + 1,
+                            sessionId = profile.session.id.toString(),
+                            completedAt = profile.session.completedAt ?: profile.session.createdAt,
+                            attention = profile.attentionScore.toDouble(),
+                            stressResistance = profile.stressResistanceScore.toDouble(),
+                            responsibility = profile.responsibilityScore.toDouble(),
+                            adaptability = profile.adaptabilityScore.toDouble(),
+                            decisionSpeedAccuracy = profile.decisionSpeedAccuracyScore.toDouble(),
+                        )
+                    },
+            ),
         )
     }
 

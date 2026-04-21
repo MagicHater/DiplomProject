@@ -2,6 +2,8 @@ package com.example.diplomproject.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.canvas.Canvas
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,14 +42,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.diplomproject.domain.model.CandidateMetric
+import com.example.diplomproject.domain.model.ControllerParticipantStatisticsSession
 import com.example.diplomproject.domain.model.FinishedSessionResult
 import com.example.diplomproject.ui.components.ProfileRadarChart
 import com.example.diplomproject.ui.components.RadarMetric
+import kotlin.math.max
+import kotlin.math.roundToInt
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
@@ -748,6 +760,7 @@ fun CandidateListScreen(
 @Composable
 fun CandidateDetailsScreen(
     uiState: CandidateDetailsUiState,
+    onMetricSelected: (CandidateMetric) -> Unit,
     onBackToCandidateListClick: () -> Unit,
 ) {
     AppScreenScaffold(title = "Карточка кандидата", onBackClick = onBackToCandidateListClick) { innerPadding ->
@@ -786,6 +799,7 @@ fun CandidateDetailsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             val participant = uiState.participant
+            val statisticSessions = participant.statistics?.sessions.orEmpty()
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(
@@ -802,6 +816,15 @@ fun CandidateDetailsScreen(
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
+                }
+            }
+            if (statisticSessions.size > 2) {
+                item {
+                    CandidateStatisticsCard(
+                        sessions = statisticSessions,
+                        selectedMetric = uiState.selectedMetric,
+                        onMetricSelected = onMetricSelected,
+                    )
                 }
             }
             items(participant.sessions, key = { it.sessionId }) { session ->
@@ -823,4 +846,157 @@ fun CandidateDetailsScreen(
         }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CandidateStatisticsCard(
+    sessions: List<ControllerParticipantStatisticsSession>,
+    selectedMetric: CandidateMetric,
+    onMetricSelected: (CandidateMetric) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text("Статистика по сессиям", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "График показывает динамику выбранной метрики по порядку прохождения сессий.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded },
+            ) {
+                OutlinedTextField(
+                    value = selectedMetric.title,
+                    onValueChange = {},
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth(),
+                    readOnly = true,
+                    label = { Text("Метрика") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                ) {
+                    CandidateMetric.entries.forEach { metric ->
+                        DropdownMenuItem(
+                            text = { Text(metric.title) },
+                            onClick = {
+                                onMetricSelected(metric)
+                                expanded = false
+                            },
+                        )
+                    }
+                }
+            }
+            CandidateLineChart(
+                sessions = sessions,
+                selectedMetric = selectedMetric,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CandidateLineChart(
+    sessions: List<ControllerParticipantStatisticsSession>,
+    selectedMetric: CandidateMetric,
+) {
+    val chartColor = MaterialTheme.colorScheme.primary
+    val axisColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+    val values = sessions.map { metricValue(it, selectedMetric) }
+    val minValue = values.minOrNull() ?: 0.0
+    val maxValue = max(values.maxOrNull() ?: 1.0, minValue + 1.0)
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+                .horizontalScroll(rememberScrollState()),
+        ) {
+            Canvas(
+                modifier = Modifier
+                    .width(max(280, sessions.size * 64).dp)
+                    .fillMaxSize(),
+            ) {
+                val leftPadding = 44.dp.toPx()
+                val rightPadding = 12.dp.toPx()
+                val topPadding = 16.dp.toPx()
+                val bottomPadding = 30.dp.toPx()
+                val chartWidth = size.width - leftPadding - rightPadding
+                val chartHeight = size.height - topPadding - bottomPadding
+
+                drawLine(
+                    color = axisColor,
+                    start = Offset(leftPadding, size.height - bottomPadding),
+                    end = Offset(size.width - rightPadding, size.height - bottomPadding),
+                    strokeWidth = 2f,
+                )
+                drawLine(
+                    color = axisColor,
+                    start = Offset(leftPadding, topPadding),
+                    end = Offset(leftPadding, size.height - bottomPadding),
+                    strokeWidth = 2f,
+                )
+
+                if (sessions.size <= 1) return@Canvas
+
+                val stepX = chartWidth / (sessions.size - 1)
+                val points = sessions.mapIndexed { index, session ->
+                    val normalized = ((metricValue(session, selectedMetric) - minValue) / (maxValue - minValue)).toFloat()
+                    Offset(
+                        x = leftPadding + index * stepX,
+                        y = topPadding + chartHeight - (normalized * chartHeight),
+                    )
+                }
+
+                val path = Path().apply {
+                    moveTo(points.first().x, points.first().y)
+                    points.drop(1).forEach { lineTo(it.x, it.y) }
+                }
+
+                drawPath(
+                    path = path,
+                    color = chartColor,
+                    style = Stroke(width = 4f, cap = StrokeCap.Round),
+                )
+
+                points.forEach { point ->
+                    drawCircle(color = chartColor, radius = 6f, center = point)
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text("Сессия 1", style = MaterialTheme.typography.labelSmall, color = axisColor)
+            Text("Сессия ${sessions.size}", style = MaterialTheme.typography.labelSmall, color = axisColor)
+        }
+        Text(
+            text = "Диапазон ${minValue.roundToInt()}–${maxValue.roundToInt()} • Ось X: номер сессии",
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.Gray,
+            textAlign = TextAlign.Start,
+        )
+    }
+}
+
+private fun metricValue(session: ControllerParticipantStatisticsSession, metric: CandidateMetric): Double = when (metric) {
+    CandidateMetric.StressResistance -> session.stressResistance
+    CandidateMetric.Attention -> session.attention
+    CandidateMetric.Responsibility -> session.responsibility
+    CandidateMetric.Adaptability -> session.adaptability
+    CandidateMetric.DecisionSpeedAccuracy -> session.decisionSpeedAccuracy
 }
