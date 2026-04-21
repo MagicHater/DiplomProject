@@ -1,4 +1,57 @@
-package com.example.diplomproject.ui.screens
+package com.example.diplomproject.navigation
+
+import android.net.Uri
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.diplomproject.domain.model.FinishedSessionResult
+import com.example.diplomproject.domain.model.TestQuestion
+import com.example.diplomproject.domain.model.UserRole
+import com.example.diplomproject.ui.screens.AppSessionState
+import com.example.diplomproject.ui.screens.AuthViewModel
+import com.example.diplomproject.ui.screens.CandidateCustomTestPassScreen
+import com.example.diplomproject.ui.screens.CandidateCustomTestsScreen
+import com.example.diplomproject.ui.screens.CandidateDetailsScreen
+import com.example.diplomproject.ui.screens.CandidateDetailsViewModel
+import com.example.diplomproject.ui.screens.CandidateHomeScreen
+import com.example.diplomproject.ui.screens.CandidateHomeViewModel
+import com.example.diplomproject.ui.screens.CandidateListScreen
+import com.example.diplomproject.ui.screens.CandidateListViewModel
+import com.example.diplomproject.ui.screens.ControllerCreateCustomTestScreen
+import com.example.diplomproject.ui.screens.ControllerCustomTestDetailsScreen
+import com.example.diplomproject.ui.screens.ControllerCustomTestResultsScreen
+import com.example.diplomproject.ui.screens.ControllerCustomTestStatisticsScreen
+import com.example.diplomproject.ui.screens.ControllerCustomTestsScreen
+import com.example.diplomproject.ui.screens.ControllerHomeScreen
+import com.example.diplomproject.ui.screens.ControllerHomeViewModel
+import com.example.diplomproject.ui.screens.GuestCompletionScreen
+import com.example.diplomproject.ui.screens.HistoryScreen
+import com.example.diplomproject.ui.screens.HistoryViewModel
+import com.example.diplomproject.ui.screens.LoginScreen
+import com.example.diplomproject.ui.screens.RegisterScreen
+import com.example.diplomproject.ui.screens.ResultScreen
+import com.example.diplomproject.ui.screens.ResultViewModel
+import com.example.diplomproject.ui.screens.TestQuestionScreen
+import com.example.diplomproject.ui.screens.TestViewModel
+
+@Composable
+fun AppNavHost(
+    navController: NavHostController = rememberNavController(),
+    authViewModel: AuthViewModel = hiltViewModel(),
+) package com.example.diplomproject.ui.screens
 
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
@@ -72,12 +125,12 @@ import kotlin.math.roundToInt
 fun CandidateHomeScreen(
     uiState: CandidateHomeUiState,
     onStartTestClick: () -> Unit,
-    onCustomTestsClick: () -> Unit,
     onCategorySelected: (String) -> Unit,
     onTokenInputChanged: (String) -> Unit,
     onStartByTokenClick: () -> Unit,
     onResultClick: () -> Unit,
     onHistoryClick: () -> Unit,
+    onCustomTestsClick: () -> Unit,
     onLogoutClick: () -> Unit,
 ) {
     AppScreenScaffold(title = "Кабинет кандидата") { innerPadding ->
@@ -96,7 +149,10 @@ fun CandidateHomeScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text("Профессиональное психологическое тестирование", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Профессиональное психологическое тестирование",
+                            style = MaterialTheme.typography.titleMedium,
+                        )
                         Text(
                             text = "Ответьте на вопросы, чтобы получить профиль с интерпретацией ключевых шкал.",
                             style = MaterialTheme.typography.bodyMedium,
@@ -138,7 +194,10 @@ fun CandidateHomeScreen(
                     label = { Text("Токен доступа") },
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedButton(onClick = onStartByTokenClick, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = onStartByTokenClick,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text("Пройти по токену")
                 }
             }
@@ -150,7 +209,10 @@ fun CandidateHomeScreen(
                     enabled = !uiState.isLoading,
                 ) {
                     if (uiState.isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
                     }
                     Text("Начать тестирование")
@@ -158,24 +220,28 @@ fun CandidateHomeScreen(
             }
 
             item {
-                OutlinedButton(onClick = onHistoryClick, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = onCustomTestsClick,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Мои пользовательские тесты")
+                }
+            }
+
+            item {
+                OutlinedButton(
+                    onClick = onHistoryClick,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text("История результатов")
                 }
             }
 
             item {
-<<<<<<< codex/add-button-for-custom-tests-in-candidatehomescreen-bup4ep
-                Button(onClick = onCustomTestsClick, modifier = Modifier.fillMaxWidth()) {
-                    Text("Доступные пользовательские тесты")
-=======
-                OutlinedButton(onClick = onCustomTestsClick, modifier = Modifier.fillMaxWidth()) {
-                    Text("Мои пользовательские тесты")
->>>>>>> master
-                }
-            }
-
-            item {
-                TextButton(onClick = onResultClick, modifier = Modifier.fillMaxWidth()) {
+                TextButton(
+                    onClick = onResultClick,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text("Открыть последний результат")
                 }
             }
@@ -183,7 +249,9 @@ fun CandidateHomeScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    ),
                 ) {
                     Text(
                         text = "Результаты предназначены для рекомендаций и не являются медицинским диагнозом.",
@@ -194,7 +262,10 @@ fun CandidateHomeScreen(
             }
 
             item {
-                TextButton(onClick = onLogoutClick, modifier = Modifier.fillMaxWidth()) {
+                TextButton(
+                    onClick = onLogoutClick,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text("Выйти из аккаунта")
                 }
             }
@@ -216,7 +287,8 @@ fun ControllerHomeScreen(
     val clipboardManager = LocalClipboardManager.current
     var categoryExpanded by remember { mutableStateOf(false) }
     var copyStatus by remember(uiState.generatedToken) { mutableStateOf<String?>(null) }
-    val selectedCategoryName = uiState.categories.firstOrNull { it.id == uiState.selectedCategoryId }?.name.orEmpty()
+    val selectedCategoryName =
+        uiState.categories.firstOrNull { it.id == uiState.selectedCategoryId }?.name.orEmpty()
     val tokenValue = uiState.generatedToken.ifBlank { "Сначала нажмите «Сгенерировать токен»" }
 
     AppScreenScaffold(title = "Кабинет экзаменатора") { innerPadding ->
@@ -248,12 +320,6 @@ fun ControllerHomeScreen(
             ActionCard(
                 title = "Создать тест",
                 subtitle = "Добавление собственного теста с вопросами и вариантами",
-                onClick = onCreateTestClick,
-            )
-
-            ActionCard(
-                title = "Мои пользовательские тесты",
-                subtitle = "Список, результаты и статистика по вашим пользовательским тестам",
                 onClick = onCreateTestClick,
             )
 
@@ -295,8 +361,11 @@ fun ControllerHomeScreen(
                                 .fillMaxWidth(),
                             label = { Text("Категория") },
                             placeholder = { Text("Выберите категорию") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded)
+                            },
                         )
+
                         ExposedDropdownMenu(
                             expanded = categoryExpanded,
                             onDismissRequest = { categoryExpanded = false },
@@ -319,7 +388,10 @@ fun ControllerHomeScreen(
                         enabled = !uiState.isLoading,
                     ) {
                         if (uiState.isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                            )
                             Spacer(modifier = Modifier.width(8.dp))
                         }
                         Text("Сгенерировать токен")
@@ -348,13 +420,17 @@ fun ControllerHomeScreen(
                     }
 
                     Text(
-                        text = copyStatus ?: "После генерации токен можно сразу скопировать из поля выше.",
+                        text = copyStatus
+                            ?: "После генерации токен можно сразу скопировать из поля выше.",
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
             }
 
-            TextButton(onClick = onLogoutClick, modifier = Modifier.fillMaxWidth()) {
+            TextButton(
+                onClick = onLogoutClick,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Text("Выйти из аккаунта")
             }
         }
@@ -380,8 +456,8 @@ fun TestQuestionScreen(
 
             if (question != null) {
                 val progress = if (uiState.progress.totalAvailableQuestions > 0) {
-                    (uiState.progress.answeredQuestions.toFloat() / uiState.progress.totalAvailableQuestions.toFloat())
-                        .coerceIn(0f, 1f)
+                    (uiState.progress.answeredQuestions.toFloat() /
+                            uiState.progress.totalAvailableQuestions.toFloat()).coerceIn(0f, 1f)
                 } else {
                     0f
                 }
@@ -393,7 +469,10 @@ fun TestQuestionScreen(
                     ),
                     style = MaterialTheme.typography.titleMedium,
                 )
-                LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 Text(
                     text = "Отвечено: ${uiState.progress.answeredQuestions}",
                     style = MaterialTheme.typography.bodySmall,
@@ -435,7 +514,10 @@ fun TestQuestionScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (uiState.isSubmitting || uiState.isFinishing) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
                 Text("Ответить и продолжить")
@@ -526,7 +608,9 @@ fun GuestCompletionScreen(
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                ),
             ) {
                 Column(
                     modifier = Modifier
@@ -606,7 +690,9 @@ private fun ResultContent(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
     ) {
         Text(
             text = "Итоговый профиль используется как рекомендательный инструмент и требует экспертной интерпретации.",
@@ -644,10 +730,15 @@ fun HistoryScreen(
         ) {
             when {
                 uiState.isLoading -> LoadingState(message = "Загружаем историю...")
-                uiState.errorMessage != null -> ErrorState(uiState.errorMessage, "Повторить", onRetryClick)
+                uiState.errorMessage != null -> ErrorState(
+                    uiState.errorMessage,
+                    "Повторить",
+                    onRetryClick,
+                )
                 uiState.infoMessage != null -> EmptyState(uiState.infoMessage)
                 else -> {
-                    val isController = uiState.role == com.example.diplomproject.domain.model.UserRole.Controller
+                    val isController =
+                        uiState.role == com.example.diplomproject.domain.model.UserRole.Controller
                     LazyColumn(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -659,13 +750,22 @@ fun HistoryScreen(
                                         modifier = Modifier.padding(14.dp),
                                         verticalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
-                                        Text(item.completedAt.formatIsoDateTime(), style = MaterialTheme.typography.labelMedium)
-                                        Text(item.category.name, style = MaterialTheme.typography.labelMedium)
+                                        Text(
+                                            item.completedAt.formatIsoDateTime(),
+                                            style = MaterialTheme.typography.labelMedium,
+                                        )
+                                        Text(
+                                            item.category.name,
+                                            style = MaterialTheme.typography.labelMedium,
+                                        )
                                         Text(
                                             text = "Проходил: ${item.participantDisplayName ?: "Неизвестно"} (${item.participantType})",
                                             style = MaterialTheme.typography.bodySmall,
                                         )
-                                        Text(item.summary, style = MaterialTheme.typography.titleMedium)
+                                        Text(
+                                            item.summary,
+                                            style = MaterialTheme.typography.titleMedium,
+                                        )
                                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                             compactScoreItems(item.scores).forEach { (title, value) ->
                                                 CompactScoreRow(title = title, value = value)
@@ -687,8 +787,14 @@ fun HistoryScreen(
                                         modifier = Modifier.padding(14.dp),
                                         verticalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
-                                        Text(item.completedAt.formatIsoDateTime(), style = MaterialTheme.typography.labelMedium)
-                                        Text(item.summary, style = MaterialTheme.typography.titleMedium)
+                                        Text(
+                                            item.completedAt.formatIsoDateTime(),
+                                            style = MaterialTheme.typography.labelMedium,
+                                        )
+                                        Text(
+                                            item.summary,
+                                            style = MaterialTheme.typography.titleMedium,
+                                        )
                                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                             compactScoreItems(item.scores).forEach { (title, value) ->
                                                 CompactScoreRow(title = title, value = value)
@@ -712,7 +818,10 @@ fun HistoryScreen(
                 Spacer(modifier = Modifier.weight(1f))
             }
 
-            Button(onClick = onBackToHomeClick, modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = onBackToHomeClick,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Text("Вернуться в кабинет")
             }
         }
@@ -749,12 +858,20 @@ fun CandidateListScreen(
                 }
 
                 uiState.errorMessage != null -> {
-                    Text(uiState.errorMessage, color = MaterialTheme.colorScheme.error)
-                    OutlinedButton(onClick = onRetryClick) { Text("Повторить") }
+                    Text(
+                        uiState.errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    OutlinedButton(onClick = onRetryClick) {
+                        Text("Повторить")
+                    }
                 }
 
                 uiState.participants.isEmpty() -> {
-                    Text("Пока нет завершённых тестов по вашим токенам.", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "Пока нет завершённых тестов по вашим токенам.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                 }
 
                 else -> {
@@ -767,16 +884,25 @@ fun CandidateListScreen(
                                         .padding(14.dp),
                                     verticalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
-                                    Text(participant.displayName, style = MaterialTheme.typography.titleMedium)
-                                    participant.email?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                                    val typeLabel = if (participant.participantType == "guest") "Гость" else "Кандидат"
+                                    Text(
+                                        participant.displayName,
+                                        style = MaterialTheme.typography.titleMedium,
+                                    )
+                                    participant.email?.let {
+                                        Text(it, style = MaterialTheme.typography.bodySmall)
+                                    }
+                                    val typeLabel =
+                                        if (participant.participantType == "guest") "Гость" else "Кандидат"
                                     Text(
                                         "$typeLabel • Завершённых сессий: ${participant.completedSessionsCount}",
                                         style = MaterialTheme.typography.bodySmall,
                                     )
                                     OutlinedButton(
                                         onClick = {
-                                            onCandidateDetailsClick(participant.participantType, participant.participantKey)
+                                            onCandidateDetailsClick(
+                                                participant.participantType,
+                                                participant.participantKey,
+                                            )
                                         },
                                         modifier = Modifier.fillMaxWidth(),
                                     ) {
@@ -806,7 +932,9 @@ fun CandidateDetailsScreen(
                         .fillMaxSize()
                         .padding(innerPadding),
                     contentAlignment = Alignment.Center,
-                ) { CircularProgressIndicator() }
+                ) {
+                    CircularProgressIndicator()
+                }
             }
 
             uiState.errorMessage != null -> {
@@ -816,7 +944,10 @@ fun CandidateDetailsScreen(
                         .padding(innerPadding)
                         .padding(16.dp),
                 ) {
-                    Text(uiState.errorMessage, color = MaterialTheme.colorScheme.error)
+                    Text(
+                        uiState.errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                    )
                 }
             }
 
@@ -826,7 +957,9 @@ fun CandidateDetailsScreen(
                         .fillMaxSize()
                         .padding(innerPadding)
                         .padding(16.dp),
-                ) { Text("Нет данных по участнику") }
+                ) {
+                    Text("Нет данных по участнику")
+                }
             }
 
             else -> LazyColumn(
@@ -848,8 +981,13 @@ fun CandidateDetailsScreen(
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             Text("Профиль участника", style = MaterialTheme.typography.titleMedium)
-                            Text("Имя: ${participant.displayName}", style = MaterialTheme.typography.bodyMedium)
-                            participant.email?.let { Text("Email: $it", style = MaterialTheme.typography.bodyMedium) }
+                            Text(
+                                "Имя: ${participant.displayName}",
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            participant.email?.let {
+                                Text("Email: $it", style = MaterialTheme.typography.bodyMedium)
+                            }
                             Text(
                                 "Тип: ${if (participant.participantType == "guest") "Гость" else "Кандидат"}",
                                 style = MaterialTheme.typography.bodyMedium,
@@ -876,8 +1014,14 @@ fun CandidateDetailsScreen(
                                 .padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Text(session.completedAt.formatIsoDateTime(), style = MaterialTheme.typography.labelMedium)
-                            Text(session.summary, style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                session.completedAt.formatIsoDateTime(),
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                            Text(
+                                session.summary,
+                                style = MaterialTheme.typography.titleMedium,
+                            )
                             compactScoreItems(session.scores).forEach { (title, value) ->
                                 CompactScoreRow(title = title, value = value)
                             }
@@ -923,7 +1067,9 @@ private fun CandidateStatisticsCard(
                         .fillMaxWidth(),
                     readOnly = true,
                     label = { Text("Метрика") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                    },
                 )
 
                 ExposedDropdownMenu(
@@ -1012,7 +1158,7 @@ private fun CandidateLineChart(
                         when {
                             sessions.size <= 3 -> 320.dp
                             else -> (sessions.size * 110).dp
-                        }
+                        },
                     )
                     .fillMaxSize(),
             ) {
@@ -1025,7 +1171,8 @@ private fun CandidateLineChart(
                 val chartHeight = size.height - topPadding - bottomPadding
 
                 yLabels.forEach { labelValue ->
-                    val normalized = ((labelValue - minValue) / (safeMaxValue - minValue)).toFloat()
+                    val normalized =
+                        ((labelValue - minValue) / (safeMaxValue - minValue)).toFloat()
                     val y = topPadding + chartHeight - normalized * chartHeight
 
                     drawLine(
@@ -1063,7 +1210,9 @@ private fun CandidateLineChart(
 
                 val stepX = if (sessions.size == 1) 0f else chartWidth / (sessions.size - 1)
                 val points = sessions.mapIndexed { index, session ->
-                    val normalized = ((metricValue(session, selectedMetric) - minValue) / (safeMaxValue - minValue)).toFloat()
+                    val normalized =
+                        ((metricValue(session, selectedMetric) - minValue) /
+                                (safeMaxValue - minValue)).toFloat()
                     Offset(
                         x = leftPadding + index * stepX,
                         y = topPadding + chartHeight - (normalized * chartHeight),

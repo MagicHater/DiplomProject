@@ -128,12 +128,12 @@ fun AppNavHost(
             CandidateHomeScreen(
                 uiState = candidateHomeState,
                 onStartTestClick = { candidateHomeViewModel.startTest() },
-                onCustomTestsClick = { navController.navigate(AppDestination.CandidateCustomTests.route) },
                 onCategorySelected = candidateHomeViewModel::onCategorySelected,
                 onTokenInputChanged = candidateHomeViewModel::onTokenChanged,
                 onStartByTokenClick = candidateHomeViewModel::startByToken,
                 onResultClick = { navController.navigate(AppDestination.History.route) },
                 onHistoryClick = { navController.navigate(AppDestination.History.route) },
+                onCustomTestsClick = { navController.navigate(AppDestination.CandidateCustomTests.route) },
                 onLogoutClick = { authViewModel.logout() },
             )
         }
@@ -192,40 +192,64 @@ fun AppNavHost(
 
         composable(
             route = AppDestination.ControllerCustomTestDetails.route,
-            arguments = listOf(navArgument(AppDestination.ControllerCustomTestDetails.testIdArg) { type = NavType.StringType }),
+            arguments = listOf(
+                navArgument(AppDestination.ControllerCustomTestDetails.testIdArg) {
+                    type = NavType.StringType
+                },
+            ),
         ) { backStackEntry ->
             ControllerCustomTestDetailsScreen(
-                testId = backStackEntry.arguments?.getString(AppDestination.ControllerCustomTestDetails.testIdArg).orEmpty(),
+                testId = backStackEntry.arguments
+                    ?.getString(AppDestination.ControllerCustomTestDetails.testIdArg)
+                    .orEmpty(),
                 onBackClick = { navController.popBackStack() },
             )
         }
 
         composable(
             route = AppDestination.ControllerCustomTestResults.route,
-            arguments = listOf(navArgument(AppDestination.ControllerCustomTestResults.testIdArg) { type = NavType.StringType }),
+            arguments = listOf(
+                navArgument(AppDestination.ControllerCustomTestResults.testIdArg) {
+                    type = NavType.StringType
+                },
+            ),
         ) { backStackEntry ->
             ControllerCustomTestResultsScreen(
-                testId = backStackEntry.arguments?.getString(AppDestination.ControllerCustomTestResults.testIdArg).orEmpty(),
+                testId = backStackEntry.arguments
+                    ?.getString(AppDestination.ControllerCustomTestResults.testIdArg)
+                    .orEmpty(),
                 onBackClick = { navController.popBackStack() },
             )
         }
 
         composable(
             route = AppDestination.ControllerCustomTestStatistics.route,
-            arguments = listOf(navArgument(AppDestination.ControllerCustomTestStatistics.testIdArg) { type = NavType.StringType }),
+            arguments = listOf(
+                navArgument(AppDestination.ControllerCustomTestStatistics.testIdArg) {
+                    type = NavType.StringType
+                },
+            ),
         ) { backStackEntry ->
             ControllerCustomTestStatisticsScreen(
-                testId = backStackEntry.arguments?.getString(AppDestination.ControllerCustomTestStatistics.testIdArg).orEmpty(),
+                testId = backStackEntry.arguments
+                    ?.getString(AppDestination.ControllerCustomTestStatistics.testIdArg)
+                    .orEmpty(),
                 onBackClick = { navController.popBackStack() },
             )
         }
 
         composable(
             route = AppDestination.CandidateCustomTestPass.route,
-            arguments = listOf(navArgument(AppDestination.CandidateCustomTestPass.testIdArg) { type = NavType.StringType }),
+            arguments = listOf(
+                navArgument(AppDestination.CandidateCustomTestPass.testIdArg) {
+                    type = NavType.StringType
+                },
+            ),
         ) { backStackEntry ->
             CandidateCustomTestPassScreen(
-                testId = backStackEntry.arguments?.getString(AppDestination.CandidateCustomTestPass.testIdArg).orEmpty(),
+                testId = backStackEntry.arguments
+                    ?.getString(AppDestination.CandidateCustomTestPass.testIdArg)
+                    .orEmpty(),
                 onBackClick = { navController.popBackStack() },
                 onSubmitted = { navController.popBackStack() },
             )
@@ -368,6 +392,7 @@ fun AppNavHost(
             val candidateListViewModel: CandidateListViewModel = hiltViewModel()
             val candidateListUiState by candidateListViewModel.uiState.collectAsState()
             LaunchedEffect(Unit) { candidateListViewModel.load() }
+
             CandidateListScreen(
                 uiState = candidateListUiState,
                 onCandidateDetailsClick = { participantType, participantKey ->
@@ -389,6 +414,7 @@ fun AppNavHost(
             val candidateDetailsViewModel: CandidateDetailsViewModel = hiltViewModel()
             val candidateDetailsUiState by candidateDetailsViewModel.uiState.collectAsState()
             LaunchedEffect(Unit) { candidateDetailsViewModel.load() }
+
             CandidateDetailsScreen(
                 uiState = candidateDetailsUiState,
                 onMetricSelected = candidateDetailsViewModel::selectMetric,
