@@ -1,8 +1,8 @@
 package com.example.diplomproject.ui.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.canvas.Canvas
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,8 +42,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -58,10 +58,10 @@ import com.example.diplomproject.domain.model.ControllerParticipantStatisticsSes
 import com.example.diplomproject.domain.model.FinishedSessionResult
 import com.example.diplomproject.ui.components.ProfileRadarChart
 import com.example.diplomproject.ui.components.RadarMetric
-import kotlin.math.max
-import kotlin.math.roundToInt
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.math.max
+import kotlin.math.roundToInt
 
 @Composable
 fun CandidateHomeScreen(
@@ -164,7 +164,10 @@ fun CandidateHomeScreen(
             }
 
             item {
-                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                ) {
                     Text(
                         text = "Результаты предназначены для рекомендаций и не являются медицинским диагнозом.",
                         style = MaterialTheme.typography.bodySmall,
@@ -773,6 +776,7 @@ fun CandidateDetailsScreen(
                     contentAlignment = Alignment.Center,
                 ) { CircularProgressIndicator() }
             }
+
             uiState.errorMessage != null -> {
                 Box(
                     modifier = Modifier
@@ -783,6 +787,7 @@ fun CandidateDetailsScreen(
                     Text(uiState.errorMessage, color = MaterialTheme.colorScheme.error)
                 }
             }
+
             uiState.participant == null -> {
                 Box(
                     modifier = Modifier
@@ -791,59 +796,63 @@ fun CandidateDetailsScreen(
                         .padding(16.dp),
                 ) { Text("Нет данных по участнику") }
             }
+
             else -> LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            val participant = uiState.participant
-            val statisticSessions = participant.statistics?.sessions.orEmpty()
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Text("Профиль участника", style = MaterialTheme.typography.titleMedium)
-                        Text("Имя: ${participant.displayName}", style = MaterialTheme.typography.bodyMedium)
-                        participant.email?.let { Text("Email: $it", style = MaterialTheme.typography.bodyMedium) }
-                        Text(
-                            "Тип: ${if (participant.participantType == "guest") "Гость" else "Кандидат"}",
-                            style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                val participant = uiState.participant
+                val statisticSessions = participant.statistics?.sessions.orEmpty()
+
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text("Профиль участника", style = MaterialTheme.typography.titleMedium)
+                            Text("Имя: ${participant.displayName}", style = MaterialTheme.typography.bodyMedium)
+                            participant.email?.let { Text("Email: $it", style = MaterialTheme.typography.bodyMedium) }
+                            Text(
+                                "Тип: ${if (participant.participantType == "guest") "Гость" else "Кандидат"}",
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
+                }
+
+                if (statisticSessions.size > 2) {
+                    item {
+                        CandidateStatisticsCard(
+                            sessions = statisticSessions,
+                            selectedMetric = uiState.selectedMetric,
+                            onMetricSelected = onMetricSelected,
                         )
                     }
                 }
-            }
-            if (statisticSessions.size > 2) {
-                item {
-                    CandidateStatisticsCard(
-                        sessions = statisticSessions,
-                        selectedMetric = uiState.selectedMetric,
-                        onMetricSelected = onMetricSelected,
-                    )
-                }
-            }
-            items(participant.sessions, key = { it.sessionId }) { session ->
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(session.completedAt.formatIsoDateTime(), style = MaterialTheme.typography.labelMedium)
-                        Text(session.summary, style = MaterialTheme.typography.titleMedium)
-                        compactScoreItems(session.scores).forEach { (title, value) ->
-                            CompactScoreRow(title = title, value = value)
+
+                items(participant.sessions, key = { it.sessionId }) { session ->
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(session.completedAt.formatIsoDateTime(), style = MaterialTheme.typography.labelMedium)
+                            Text(session.summary, style = MaterialTheme.typography.titleMedium)
+                            compactScoreItems(session.scores).forEach { (title, value) ->
+                                CompactScoreRow(title = title, value = value)
+                            }
                         }
                     }
                 }
             }
-        }
         }
     }
 }
@@ -869,6 +878,7 @@ private fun CandidateStatisticsCard(
                 "График показывает динамику выбранной метрики по порядку прохождения сессий.",
                 style = MaterialTheme.typography.bodySmall,
             )
+
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded },
@@ -883,6 +893,7 @@ private fun CandidateStatisticsCard(
                     label = { Text("Метрика") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 )
+
                 ExposedDropdownMenu(
                     expanded = expanded,
                     onDismissRequest = { expanded = false },
@@ -898,6 +909,7 @@ private fun CandidateStatisticsCard(
                     }
                 }
             }
+
             CandidateLineChart(
                 sessions = sessions,
                 selectedMetric = selectedMetric,
@@ -942,6 +954,7 @@ private fun CandidateLineChart(
                     end = Offset(size.width - rightPadding, size.height - bottomPadding),
                     strokeWidth = 2f,
                 )
+
                 drawLine(
                     color = axisColor,
                     start = Offset(leftPadding, topPadding),
@@ -984,6 +997,7 @@ private fun CandidateLineChart(
             Text("Сессия 1", style = MaterialTheme.typography.labelSmall, color = axisColor)
             Text("Сессия ${sessions.size}", style = MaterialTheme.typography.labelSmall, color = axisColor)
         }
+
         Text(
             text = "Диапазон ${minValue.roundToInt()}–${maxValue.roundToInt()} • Ось X: номер сессии",
             style = MaterialTheme.typography.labelSmall,
@@ -993,7 +1007,10 @@ private fun CandidateLineChart(
     }
 }
 
-private fun metricValue(session: ControllerParticipantStatisticsSession, metric: CandidateMetric): Double = when (metric) {
+private fun metricValue(
+    session: ControllerParticipantStatisticsSession,
+    metric: CandidateMetric,
+): Double = when (metric) {
     CandidateMetric.StressResistance -> session.stressResistance
     CandidateMetric.Attention -> session.attention
     CandidateMetric.Responsibility -> session.responsibility
