@@ -14,6 +14,13 @@ class JwtAuthenticationFilter(
     private val jwtService: JwtService,
     private val userDetailsService: AppUserDetailsService,
 ) : OncePerRequestFilter() {
+
+    override fun shouldNotFilter(request: HttpServletRequest): Boolean {
+        val path = request.servletPath ?: return false
+
+        return path.startsWith("/token-management/")
+    }
+
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
@@ -26,9 +33,11 @@ class JwtAuthenticationFilter(
         }
 
         val token = authHeader.substring(7)
+
         runCatching {
             val claims = jwtService.parseClaims(token)
-            val email = claims.subject
+            val email = claims.subject.trim().lowercase()
+
             if (SecurityContextHolder.getContext().authentication == null) {
                 val userDetails = userDetailsService.loadUserByUsername(email)
                 val authToken = UsernamePasswordAuthenticationToken(
