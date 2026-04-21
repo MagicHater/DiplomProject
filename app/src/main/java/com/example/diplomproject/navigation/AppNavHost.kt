@@ -128,6 +128,7 @@ fun AppNavHost(
             CandidateHomeScreen(
                 uiState = candidateHomeState,
                 onStartTestClick = { candidateHomeViewModel.startTest() },
+                onCustomTestsClick = { navController.navigate(AppDestination.CandidateCustomTests.route) },
                 onCategorySelected = candidateHomeViewModel::onCategorySelected,
                 onTokenInputChanged = candidateHomeViewModel::onTokenChanged,
                 onStartByTokenClick = candidateHomeViewModel::startByToken,

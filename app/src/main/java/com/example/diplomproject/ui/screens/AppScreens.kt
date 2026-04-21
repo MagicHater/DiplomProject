@@ -72,6 +72,7 @@ import kotlin.math.roundToInt
 fun CandidateHomeScreen(
     uiState: CandidateHomeUiState,
     onStartTestClick: () -> Unit,
+    onCustomTestsClick: () -> Unit,
     onCategorySelected: (String) -> Unit,
     onTokenInputChanged: (String) -> Unit,
     onStartByTokenClick: () -> Unit,
@@ -159,6 +160,12 @@ fun CandidateHomeScreen(
             item {
                 OutlinedButton(onClick = onHistoryClick, modifier = Modifier.fillMaxWidth()) {
                     Text("История результатов")
+                }
+            }
+
+            item {
+                Button(onClick = onCustomTestsClick, modifier = Modifier.fillMaxWidth()) {
+                    Text("Доступные пользовательские тесты")
                 }
             }
 
