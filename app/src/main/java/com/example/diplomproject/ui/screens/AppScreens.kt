@@ -1,5 +1,6 @@
 package com.example.diplomproject.ui.screens
 
+import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -48,6 +49,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -60,6 +63,8 @@ import com.example.diplomproject.ui.components.ProfileRadarChart
 import com.example.diplomproject.ui.components.RadarMetric
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -725,13 +730,16 @@ fun CandidateListScreen(
                 uiState.isLoading -> {
                     CircularProgressIndicator()
                 }
+
                 uiState.errorMessage != null -> {
                     Text(uiState.errorMessage, color = MaterialTheme.colorScheme.error)
                     OutlinedButton(onClick = onRetryClick) { Text("Повторить") }
                 }
+
                 uiState.participants.isEmpty() -> {
                     Text("Пока нет завершённых тестов по вашим токенам.", style = MaterialTheme.typography.bodyMedium)
                 }
+
                 else -> {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         items(uiState.participants, key = { it.participantId }) { participant ->
@@ -833,7 +841,7 @@ fun CandidateDetailsScreen(
                     }
                 }
 
-                if (statisticSessions.size > 2) {
+                if (statisticSessions.size >= 2) {
                     item {
                         CandidateStatisticsCard(
                             sessions = statisticSessions,
@@ -932,28 +940,93 @@ private fun CandidateLineChart(
 ) {
     val chartColor = MaterialTheme.colorScheme.primary
     val axisColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+    val gridColor = axisColor.copy(alpha = 0.22f)
     val values = sessions.map { metricValue(it, selectedMetric) }
-    val minValue = values.minOrNull() ?: 0.0
-    val maxValue = max(values.maxOrNull() ?: 1.0, minValue + 1.0)
+
+    val rawMin = values.minOrNull() ?: 0.0
+    val rawMax = values.maxOrNull() ?: 1.0
+    val minValue = floor(rawMin / 10.0).toInt() * 10
+    val maxValue = ceil(rawMax / 10.0).toInt() * 10
+    val safeMaxValue = if (maxValue == minValue) minValue + 10 else maxValue
+
+    val ySteps = 5
+    val yLabels = (0..ySteps).map { step ->
+        minValue + ((safeMaxValue - minValue) * step.toDouble() / ySteps.toDouble())
+    }
+
+    val axisTextPaint = remember {
+        Paint().apply {
+            isAntiAlias = true
+            textSize = 24f
+            color = android.graphics.Color.GRAY
+            textAlign = Paint.Align.RIGHT
+        }
+    }
+
+    val xTextPaint = remember {
+        Paint().apply {
+            isAntiAlias = true
+            textSize = 24f
+            color = android.graphics.Color.GRAY
+            textAlign = Paint.Align.CENTER
+        }
+    }
+
+    val valueTextPaint = remember {
+        Paint().apply {
+            isAntiAlias = true
+            textSize = 26f
+            color = android.graphics.Color.DKGRAY
+            textAlign = Paint.Align.CENTER
+            isFakeBoldText = true
+        }
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
+                .height(300.dp)
                 .horizontalScroll(rememberScrollState()),
         ) {
             Canvas(
                 modifier = Modifier
-                    .width(max(280, sessions.size * 64).dp)
+                    .width(
+                        when {
+                            sessions.size <= 3 -> 320.dp
+                            else -> (sessions.size * 110).dp
+                        }
+                    )
                     .fillMaxSize(),
             ) {
-                val leftPadding = 44.dp.toPx()
-                val rightPadding = 12.dp.toPx()
-                val topPadding = 16.dp.toPx()
-                val bottomPadding = 30.dp.toPx()
+                val leftPadding = 64.dp.toPx()
+                val rightPadding = 20.dp.toPx()
+                val topPadding = 24.dp.toPx()
+                val bottomPadding = 92.dp.toPx()
+
                 val chartWidth = size.width - leftPadding - rightPadding
                 val chartHeight = size.height - topPadding - bottomPadding
+
+                yLabels.forEach { labelValue ->
+                    val normalized = ((labelValue - minValue) / (safeMaxValue - minValue)).toFloat()
+                    val y = topPadding + chartHeight - normalized * chartHeight
+
+                    drawLine(
+                        color = gridColor,
+                        start = Offset(leftPadding, y),
+                        end = Offset(size.width - rightPadding, y),
+                        strokeWidth = 1f,
+                    )
+
+                    drawIntoCanvas { canvas ->
+                        canvas.nativeCanvas.drawText(
+                            labelValue.roundToInt().toString(),
+                            leftPadding - 10.dp.toPx(),
+                            y + 8f,
+                            axisTextPaint,
+                        )
+                    }
+                }
 
                 drawLine(
                     color = axisColor,
@@ -969,44 +1042,78 @@ private fun CandidateLineChart(
                     strokeWidth = 2f,
                 )
 
-                if (sessions.size <= 1) return@Canvas
+                if (sessions.isEmpty()) return@Canvas
 
-                val stepX = chartWidth / (sessions.size - 1)
+                val stepX = if (sessions.size == 1) 0f else chartWidth / (sessions.size - 1)
                 val points = sessions.mapIndexed { index, session ->
-                    val normalized = ((metricValue(session, selectedMetric) - minValue) / (maxValue - minValue)).toFloat()
+                    val normalized = ((metricValue(session, selectedMetric) - minValue) / (safeMaxValue - minValue)).toFloat()
                     Offset(
                         x = leftPadding + index * stepX,
                         y = topPadding + chartHeight - (normalized * chartHeight),
                     )
                 }
 
-                val path = Path().apply {
-                    moveTo(points.first().x, points.first().y)
-                    points.drop(1).forEach { lineTo(it.x, it.y) }
+                if (points.size > 1) {
+                    val path = Path().apply {
+                        moveTo(points.first().x, points.first().y)
+                        points.drop(1).forEach { lineTo(it.x, it.y) }
+                    }
+
+                    drawPath(
+                        path = path,
+                        color = chartColor,
+                        style = Stroke(width = 4f, cap = StrokeCap.Round),
+                    )
                 }
 
-                drawPath(
-                    path = path,
-                    color = chartColor,
-                    style = Stroke(width = 4f, cap = StrokeCap.Round),
-                )
+                points.forEachIndexed { index, point ->
+                    drawCircle(color = chartColor, radius = 7f, center = point)
 
-                points.forEach { point ->
-                    drawCircle(color = chartColor, radius = 6f, center = point)
+                    drawIntoCanvas { canvas ->
+                        canvas.nativeCanvas.drawText(
+                            String.format("%.1f", values[index]),
+                            point.x,
+                            point.y - 12.dp.toPx(),
+                            valueTextPaint,
+                        )
+                    }
+
+                    drawIntoCanvas { canvas ->
+                        canvas.nativeCanvas.drawText(
+                            (index + 1).toString(),
+                            point.x,
+                            size.height - bottomPadding + 24.dp.toPx(),
+                            xTextPaint,
+                        )
+                    }
+
+                    val parts = sessions[index].completedAt.formatIsoDateTime().split(" ")
+                    val dateLabel = parts.getOrNull(0).orEmpty()
+                    val timeLabel = parts.getOrNull(1).orEmpty()
+
+                    drawIntoCanvas { canvas ->
+                        canvas.nativeCanvas.drawText(
+                            dateLabel,
+                            point.x,
+                            size.height - bottomPadding + 50.dp.toPx(),
+                            xTextPaint,
+                        )
+                    }
+
+                    drawIntoCanvas { canvas ->
+                        canvas.nativeCanvas.drawText(
+                            timeLabel,
+                            point.x,
+                            size.height - bottomPadding + 74.dp.toPx(),
+                            xTextPaint,
+                        )
+                    }
                 }
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text("Сессия 1", style = MaterialTheme.typography.labelSmall, color = axisColor)
-            Text("Сессия ${sessions.size}", style = MaterialTheme.typography.labelSmall, color = axisColor)
-        }
-
         Text(
-            text = "Диапазон ${minValue.roundToInt()}–${maxValue.roundToInt()} • Ось X: номер сессии",
+            text = "Диапазон $minValue–$safeMaxValue • Ось X: номер сессии",
             style = MaterialTheme.typography.labelSmall,
             color = Color.Gray,
             textAlign = TextAlign.Start,
