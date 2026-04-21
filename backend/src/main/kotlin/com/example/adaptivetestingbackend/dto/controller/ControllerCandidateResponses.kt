@@ -2,18 +2,20 @@ package com.example.adaptivetestingbackend.dto.controller
 
 import com.example.adaptivetestingbackend.dto.testsession.MyResultListItemResponse
 import java.time.OffsetDateTime
-import java.util.UUID
 
-data class ControllerCandidateListItemResponse(
-    val candidateId: UUID,
-    val fullName: String,
-    val email: String,
+data class ControllerParticipantListItemResponse(
+    val participantId: String,
+    val participantType: String,
+    val displayName: String,
+    val email: String? = null,
     val completedSessionsCount: Long,
     val lastCompletedAt: OffsetDateTime?,
 )
 
-data class ControllerCandidateResultsResponse(
-    val candidateId: UUID,
-    val fullName: String,
+data class ControllerParticipantResultsResponse(
+    val participantId: String,
+    val participantType: String,
+    val displayName: String,
+    val email: String? = null,
     val sessions: List<MyResultListItemResponse>,
 )

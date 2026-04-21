@@ -5,6 +5,8 @@ import com.example.diplomproject.data.remote.AppApi
 import com.example.diplomproject.data.remote.ControllerTokenRequestDto
 import com.example.diplomproject.data.remote.ControllerTokenResponseDto
 import com.example.diplomproject.data.remote.ControllerTokenResultListItemResponseDto
+import com.example.diplomproject.data.remote.ControllerParticipantListItemResponseDto
+import com.example.diplomproject.data.remote.ControllerParticipantResultsResponseDto
 import com.example.diplomproject.data.remote.CreateTestSessionRequestDto
 import com.example.diplomproject.data.remote.FinishSessionResponseDto
 import com.example.diplomproject.data.remote.MyResultListItemResponseDto
@@ -21,6 +23,8 @@ import com.example.diplomproject.data.remote.TokenPreviewRequestDto
 import com.example.diplomproject.domain.model.AnswerProgress
 import com.example.diplomproject.domain.model.CandidateResultHistoryItem
 import com.example.diplomproject.domain.model.ControllerTokenItem
+import com.example.diplomproject.domain.model.ControllerParticipantListItem
+import com.example.diplomproject.domain.model.ControllerParticipantResults
 import com.example.diplomproject.domain.model.ControllerTokenResultHistoryItem
 import com.example.diplomproject.domain.model.FinishedSessionResult
 import com.example.diplomproject.domain.model.NextQuestionPayload
@@ -74,6 +78,17 @@ class TestSessionRepositoryImpl @Inject constructor(
 
     override suspend fun getControllerTokenResults(): List<ControllerTokenResultHistoryItem> =
         appApi.getControllerTokenResults().map { it.toDomain() }
+
+    override suspend fun getControllerParticipants(): List<ControllerParticipantListItem> =
+        appApi.getControllerParticipants().map { it.toDomain() }
+
+    override suspend fun getControllerParticipantResults(
+        participantType: String,
+        participantKey: String,
+    ): ControllerParticipantResults = appApi.getControllerParticipantResults(
+        participantType = participantType,
+        participantKey = participantKey,
+    ).toDomain()
 
     override suspend fun getNextQuestion(sessionId: String): NextQuestionPayload {
         val guestSessionKey = sessionManager.getGuestSessionKey()
@@ -200,3 +215,28 @@ private fun ControllerTokenResultListItemResponseDto.toDomain(): ControllerToken
         summary = summary,
         scores = scores.toDomain(),
     )
+
+private fun ControllerParticipantListItemResponseDto.toDomain(): ControllerParticipantListItem {
+    val participantKey = participantId.substringAfter(':', "")
+    return ControllerParticipantListItem(
+        participantId = participantId,
+        participantType = participantType,
+        participantKey = participantKey,
+        displayName = displayName,
+        email = email,
+        completedSessionsCount = completedSessionsCount,
+        lastCompletedAt = lastCompletedAt,
+    )
+}
+
+private fun ControllerParticipantResultsResponseDto.toDomain(): ControllerParticipantResults {
+    val participantKey = participantId.substringAfter(':', "")
+    return ControllerParticipantResults(
+        participantId = participantId,
+        participantType = participantType,
+        participantKey = participantKey,
+        displayName = displayName,
+        email = email,
+        sessions = sessions.map { it.toDomain() },
+    )
+}

@@ -104,4 +104,45 @@ interface ResultProfileRepository : JpaRepository<ResultProfileEntity, UUID> {
         @Param("status") status: TestSessionStatus,
     ): Optional<ResultProfileEntity>
 
+    @Query(
+        """
+        select rp
+        from ResultProfileEntity rp
+        join fetch rp.session s
+        join fetch s.category c
+        left join fetch s.candidate candidate
+        left join fetch s.accessToken t
+        where t.createdBy.id = :controllerId
+          and s.candidate.id = :candidateId
+          and s.status = :status
+        order by s.completedAt desc
+        """,
+    )
+    fun findCompletedByControllerIdAndCandidateIdOrderByCompletedAtDesc(
+        @Param("controllerId") controllerId: UUID,
+        @Param("candidateId") candidateId: UUID,
+        @Param("status") status: TestSessionStatus,
+    ): List<ResultProfileEntity>
+
+    @Query(
+        """
+        select rp
+        from ResultProfileEntity rp
+        join fetch rp.session s
+        join fetch s.category c
+        left join fetch s.candidate candidate
+        left join fetch s.accessToken t
+        where t.createdBy.id = :controllerId
+          and s.candidate is null
+          and s.guestIdentifier = :guestIdentifier
+          and s.status = :status
+        order by s.completedAt desc
+        """,
+    )
+    fun findCompletedByControllerIdAndGuestIdentifierOrderByCompletedAtDesc(
+        @Param("controllerId") controllerId: UUID,
+        @Param("guestIdentifier") guestIdentifier: String,
+        @Param("status") status: TestSessionStatus,
+    ): List<ResultProfileEntity>
+
 }
