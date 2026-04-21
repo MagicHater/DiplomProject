@@ -20,6 +20,7 @@ sealed class AppDestination(val route: String) {
     data object GuestComplete : AppDestination("guest_complete")
     data object History : AppDestination("history")
     data object CandidateList : AppDestination("candidate_list")
+    data object ControllerCreateTest : AppDestination("controller_create_test")
     data object CandidateDetails : AppDestination("candidate_details/{participantType}/{participantKey}") {
         const val participantTypeArg = "participantType"
         const val participantKeyArg = "participantKey"

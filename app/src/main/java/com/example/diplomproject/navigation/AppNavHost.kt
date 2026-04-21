@@ -28,6 +28,8 @@ import com.example.diplomproject.ui.screens.CandidateHomeScreen
 import com.example.diplomproject.ui.screens.CandidateHomeViewModel
 import com.example.diplomproject.ui.screens.CandidateListScreen
 import com.example.diplomproject.ui.screens.CandidateListViewModel
+import com.example.diplomproject.ui.screens.ControllerCreateTestScreen
+import com.example.diplomproject.ui.screens.ControllerCreateTestViewModel
 import com.example.diplomproject.ui.screens.ControllerHomeScreen
 import com.example.diplomproject.ui.screens.ControllerHomeViewModel
 import com.example.diplomproject.ui.screens.GuestCompletionScreen
@@ -133,13 +135,54 @@ fun AppNavHost(
         composable(AppDestination.ControllerHome.route) {
             val controllerViewModel: ControllerHomeViewModel = hiltViewModel()
             val controllerUiState by controllerViewModel.uiState.collectAsState()
+
+            val shouldReloadCategories = navController.currentBackStackEntry
+                ?.savedStateHandle
+                ?.get<Boolean>("controller_reload_categories") == true
+            if (shouldReloadCategories) {
+                controllerViewModel.load()
+                navController.currentBackStackEntry
+                    ?.savedStateHandle
+                    ?.set("controller_reload_categories", false)
+            }
+
             ControllerHomeScreen(
                 uiState = controllerUiState,
                 onCategorySelected = controllerViewModel::onCategorySelected,
                 onGenerateTokenClick = controllerViewModel::generateToken,
+                onCreateTestClick = { navController.navigate(AppDestination.ControllerCreateTest.route) },
                 onCandidateListClick = { navController.navigate(AppDestination.CandidateList.route) },
                 onHistoryClick = { navController.navigate(AppDestination.History.route) },
                 onLogoutClick = { authViewModel.logout() },
+            )
+        }
+
+        composable(AppDestination.ControllerCreateTest.route) {
+            val createTestViewModel: ControllerCreateTestViewModel = hiltViewModel()
+            val createTestUiState by createTestViewModel.uiState.collectAsState()
+
+            ControllerCreateTestScreen(
+                uiState = createTestUiState,
+                onBackClick = { navController.popBackStack() },
+                onNameChanged = createTestViewModel::onNameChanged,
+                onDescriptionChanged = createTestViewModel::onDescriptionChanged,
+                onAddQuestion = createTestViewModel::addQuestion,
+                onRemoveQuestion = createTestViewModel::removeQuestion,
+                onQuestionTextChanged = createTestViewModel::onQuestionTextChanged,
+                onAddOption = createTestViewModel::addOption,
+                onRemoveOption = createTestViewModel::removeOption,
+                onOptionTextChanged = createTestViewModel::onOptionTextChanged,
+                onOptionOrderChanged = createTestViewModel::onOptionOrderChanged,
+                onOptionContributionChanged = createTestViewModel::onOptionContributionChanged,
+                onOptionScaleChanged = createTestViewModel::onOptionScaleChanged,
+                onSaveClick = {
+                    createTestViewModel.saveTest {
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("controller_reload_categories", true)
+                        navController.popBackStack()
+                    }
+                },
             )
         }
 

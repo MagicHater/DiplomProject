@@ -45,7 +45,7 @@ class SecurityConfig(
                     .requestMatchers("/me/results", "/me/results/**").hasRole("CANDIDATE")
 
                     // ВАЖНО: новый путь token-management
-                    .requestMatchers("/token-management/**").permitAll()
+                    .requestMatchers("/token-management/**").hasRole("CONTROLLER")
 
                     .requestMatchers("/controller/**").hasRole("CONTROLLER")
                     .requestMatchers("/test-sessions/**").permitAll()

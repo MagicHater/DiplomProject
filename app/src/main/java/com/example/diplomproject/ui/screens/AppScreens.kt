@@ -191,6 +191,7 @@ fun ControllerHomeScreen(
     uiState: ControllerHomeUiState,
     onCategorySelected: (String) -> Unit,
     onGenerateTokenClick: () -> Unit,
+    onCreateTestClick: () -> Unit,
     onCandidateListClick: () -> Unit,
     onHistoryClick: () -> Unit,
     onLogoutClick: () -> Unit,
@@ -224,6 +225,12 @@ fun ControllerHomeScreen(
                 title = "История и результаты",
                 subtitle = "Сводка завершённых сессий и доступ к полным отчётам",
                 onClick = onHistoryClick,
+            )
+
+            ActionCard(
+                title = "Создать тест",
+                subtitle = "Добавление собственного теста с вопросами и вариантами",
+                onClick = onCreateTestClick,
             )
 
             Card(modifier = Modifier.fillMaxWidth()) {

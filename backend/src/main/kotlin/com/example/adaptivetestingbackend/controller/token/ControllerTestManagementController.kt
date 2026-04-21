@@ -1,12 +1,16 @@
 package com.example.adaptivetestingbackend.controller.token
 
+import com.example.adaptivetestingbackend.dto.controller.CreateControllerTestRequest
+import com.example.adaptivetestingbackend.dto.controller.CreateControllerTestResponse
 import com.example.adaptivetestingbackend.dto.testsession.TestCategoryResponse
 import com.example.adaptivetestingbackend.dto.testsession.ResultProfileResponse
 import com.example.adaptivetestingbackend.dto.token.ControllerTokenListItemResponse
 import com.example.adaptivetestingbackend.dto.token.ControllerTokenResultListItemResponse
 import com.example.adaptivetestingbackend.dto.token.CreateControllerTokenResponse
 import com.example.adaptivetestingbackend.security.JwtService
+import com.example.adaptivetestingbackend.service.token.ControllerTestCreationService
 import com.example.adaptivetestingbackend.service.token.ControllerTokenService
+import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -22,11 +26,22 @@ import java.util.UUID
 @RequestMapping("/token-management")
 class ControllerTestManagementController(
     private val controllerTokenService: ControllerTokenService,
+    private val controllerTestCreationService: ControllerTestCreationService,
     private val jwtService: JwtService,
 ) {
     @GetMapping("/categories")
     fun categories(): List<TestCategoryResponse> =
         controllerTokenService.getActiveCategories()
+
+
+    @PostMapping("/tests")
+    fun createTest(
+        @RequestHeader(name = "Authorization", required = false) authorization: String?,
+        @Valid @RequestBody request: CreateControllerTestRequest,
+    ): CreateControllerTestResponse {
+        val email = extractEmailFromAuthorization(authorization)
+        return controllerTestCreationService.createTest(email, request)
+    }
 
     @PostMapping("/tokens")
     fun createToken(
