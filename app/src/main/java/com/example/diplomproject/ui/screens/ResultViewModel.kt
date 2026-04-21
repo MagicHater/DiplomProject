@@ -34,7 +34,22 @@ class ResultViewModel @Inject constructor(
         load()
     }
 
+    fun setPrefetchedResult(result: FinishedSessionResult) {
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                result = result,
+                errorMessage = null,
+                emptyMessage = null,
+            )
+        }
+    }
+
     fun load() {
+        if (_uiState.value.result != null) {
+            return
+        }
+
         val id = sessionId
         if (id.isNullOrBlank()) {
             _uiState.update {

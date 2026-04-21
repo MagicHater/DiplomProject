@@ -1,25 +1,26 @@
 package com.example.diplomproject.navigation
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.diplomproject.domain.model.FinishedSessionResult
 import com.example.diplomproject.domain.model.TestQuestion
 import com.example.diplomproject.domain.model.UserRole
-import com.example.diplomproject.ui.screens.AuthViewModel
 import com.example.diplomproject.ui.screens.AppSessionState
+import com.example.diplomproject.ui.screens.AuthViewModel
 import com.example.diplomproject.ui.screens.CandidateDetailsScreen
 import com.example.diplomproject.ui.screens.CandidateHomeScreen
 import com.example.diplomproject.ui.screens.CandidateHomeViewModel
@@ -158,8 +159,13 @@ fun AppNavHost(
 
             LaunchedEffect(testUiState.navigateToResult) {
                 if (testUiState.navigateToResult) {
-                    val finishedSessionId = testUiState.finishResult?.sessionId ?: return@LaunchedEffect
-                    navController.navigate(AppDestination.Result.createRoute(finishedSessionId)) {
+                    val finishedResult = testUiState.finishResult ?: return@LaunchedEffect
+
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("prefetchedResult", finishedResult)
+
+                    navController.navigate(AppDestination.Result.createRoute(finishedResult.sessionId)) {
                         popUpTo(AppDestination.Test.route) {
                             inclusive = true
                         }
@@ -183,6 +189,19 @@ fun AppNavHost(
         ) {
             val resultViewModel: ResultViewModel = hiltViewModel()
             val resultUiState by resultViewModel.uiState.collectAsState()
+
+            val prefetchedResult = navController.previousBackStackEntry
+                ?.savedStateHandle
+                ?.get<FinishedSessionResult>("prefetchedResult")
+
+            LaunchedEffect(prefetchedResult?.sessionId) {
+                if (prefetchedResult != null) {
+                    resultViewModel.setPrefetchedResult(prefetchedResult)
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.remove<FinishedSessionResult>("prefetchedResult")
+                }
+            }
 
             ResultScreen(
                 uiState = resultUiState,
