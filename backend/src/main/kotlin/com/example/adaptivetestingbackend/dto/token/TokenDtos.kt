@@ -66,3 +66,13 @@ data class TokenSessionStartResponse(
     val guestSession: Boolean,
     val guestSessionKey: String? = null,
 )
+
+data class ControllerTokenResultListItemResponse(
+    val sessionId: UUID,
+    val completedAt: OffsetDateTime,
+    val category: TestCategoryResponse,
+    val participantType: String,
+    val participantDisplayName: String?,
+    val summary: String,
+    val scores: com.example.adaptivetestingbackend.dto.testsession.ScaleScoresDto,
+)

@@ -4,6 +4,7 @@ import com.example.diplomproject.data.local.SessionManager
 import com.example.diplomproject.data.remote.AppApi
 import com.example.diplomproject.data.remote.ControllerTokenRequestDto
 import com.example.diplomproject.data.remote.ControllerTokenResponseDto
+import com.example.diplomproject.data.remote.ControllerTokenResultListItemResponseDto
 import com.example.diplomproject.data.remote.CreateTestSessionRequestDto
 import com.example.diplomproject.data.remote.FinishSessionResponseDto
 import com.example.diplomproject.data.remote.MyResultListItemResponseDto
@@ -20,6 +21,7 @@ import com.example.diplomproject.data.remote.TokenPreviewRequestDto
 import com.example.diplomproject.domain.model.AnswerProgress
 import com.example.diplomproject.domain.model.CandidateResultHistoryItem
 import com.example.diplomproject.domain.model.ControllerTokenItem
+import com.example.diplomproject.domain.model.ControllerTokenResultHistoryItem
 import com.example.diplomproject.domain.model.FinishedSessionResult
 import com.example.diplomproject.domain.model.NextQuestionPayload
 import com.example.diplomproject.domain.model.ScaleInterpretations
@@ -32,6 +34,7 @@ import com.example.diplomproject.domain.model.TokenPreview
 import com.example.diplomproject.domain.model.TokenSessionStartResult
 import com.example.diplomproject.domain.repository.TestSessionRepository
 import javax.inject.Inject
+import retrofit2.HttpException
 import javax.inject.Singleton
 
 @Singleton
@@ -69,6 +72,9 @@ class TestSessionRepositoryImpl @Inject constructor(
     override suspend fun getControllerTokens(): List<ControllerTokenItem> =
         appApi.getControllerTokens().map { it.toDomain() }
 
+    override suspend fun getControllerTokenResults(): List<ControllerTokenResultHistoryItem> =
+        appApi.getControllerTokenResults().map { it.toDomain() }
+
     override suspend fun getNextQuestion(sessionId: String): NextQuestionPayload {
         val guestSessionKey = sessionManager.getGuestSessionKey()
         val response = appApi.getNextQuestion(
@@ -89,7 +95,17 @@ class TestSessionRepositoryImpl @Inject constructor(
 
     override suspend fun getMyResults(): List<CandidateResultHistoryItem> = appApi.getMyResults().map { it.toDomain() }
 
-    override suspend fun getResult(sessionId: String): FinishedSessionResult = appApi.getResult(sessionId).toDomain()
+    override suspend fun getResult(sessionId: String): FinishedSessionResult =
+        runCatching { appApi.getResult(sessionId).toDomain() }
+            .recoverCatching { throwable ->
+                val http = throwable as? HttpException
+                if (http?.code() == 401 || http?.code() == 403) {
+                    appApi.getControllerTokenResult(sessionId).toDomain()
+                } else {
+                    throw throwable
+                }
+            }
+            .getOrThrow()
 
     override suspend fun finishSession(sessionId: String): FinishedSessionResult {
         val guestSessionKey = sessionManager.getGuestSessionKey()
@@ -173,3 +189,14 @@ private fun ControllerTokenResponseDto.toDomain(): ControllerTokenItem = Control
     createdAt = createdAt,
     isUsed = isUsed,
 )
+
+private fun ControllerTokenResultListItemResponseDto.toDomain(): ControllerTokenResultHistoryItem =
+    ControllerTokenResultHistoryItem(
+        sessionId = sessionId,
+        completedAt = completedAt,
+        category = category.toDomain(),
+        participantType = participantType,
+        participantDisplayName = participantDisplayName,
+        summary = summary,
+        scores = scores.toDomain(),
+    )

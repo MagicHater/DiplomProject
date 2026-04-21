@@ -142,3 +142,15 @@ data class ScaleInterpretationsDto(
     @SerialName("adaptability") val adaptability: String,
     @SerialName("decisionSpeedAccuracy") val decisionSpeedAccuracy: String,
 )
+
+
+@Serializable
+data class ControllerTokenResultListItemResponseDto(
+    @SerialName("sessionId") val sessionId: String,
+    @SerialName("completedAt") val completedAt: String,
+    @SerialName("category") val category: TestCategoryDto,
+    @SerialName("participantType") val participantType: String,
+    @SerialName("participantDisplayName") val participantDisplayName: String? = null,
+    @SerialName("summary") val summary: String,
+    @SerialName("scores") val scores: ScaleScoresDto,
+)
