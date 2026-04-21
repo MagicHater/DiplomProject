@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.diplomproject.domain.model.ControllerParticipantResults
+import com.example.diplomproject.domain.model.CandidateMetric
 import com.example.diplomproject.domain.repository.TestSessionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -24,6 +25,10 @@ class CandidateDetailsViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(CandidateDetailsUiState())
     val uiState: StateFlow<CandidateDetailsUiState> = _uiState.asStateFlow()
+
+    fun selectMetric(metric: CandidateMetric) {
+        _uiState.update { it.copy(selectedMetric = metric) }
+    }
 
     fun load() {
         if (participantKey.isBlank()) {
@@ -65,4 +70,5 @@ data class CandidateDetailsUiState(
     val isLoading: Boolean = false,
     val participant: ControllerParticipantResults? = null,
     val errorMessage: String? = null,
+    val selectedMetric: CandidateMetric = CandidateMetric.StressResistance,
 )

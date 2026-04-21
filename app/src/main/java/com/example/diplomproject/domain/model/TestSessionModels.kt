@@ -129,4 +129,29 @@ data class ControllerParticipantResults(
     val displayName: String,
     val email: String? = null,
     val sessions: List<CandidateResultHistoryItem>,
+    val statistics: ControllerParticipantStatistics? = null,
 ) : Serializable
+
+data class ControllerParticipantStatistics(
+    val participantId: String,
+    val sessions: List<ControllerParticipantStatisticsSession>,
+) : Serializable
+
+data class ControllerParticipantStatisticsSession(
+    val sessionOrder: Int,
+    val sessionId: String,
+    val completedAt: String,
+    val attention: Double,
+    val stressResistance: Double,
+    val responsibility: Double,
+    val adaptability: Double,
+    val decisionSpeedAccuracy: Double,
+) : Serializable
+
+enum class CandidateMetric(val title: String) {
+    StressResistance("Stress Resistance"),
+    Attention("Attention"),
+    Responsibility("Responsibility"),
+    Adaptability("Adaptability"),
+    DecisionSpeedAccuracy("Decision Speed Accuracy"),
+}

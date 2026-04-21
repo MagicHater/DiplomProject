@@ -18,4 +18,21 @@ data class ControllerParticipantResultsResponse(
     val displayName: String,
     val email: String? = null,
     val sessions: List<MyResultListItemResponse>,
+    val statistics: ControllerParticipantStatisticsResponse? = null,
+)
+
+data class ControllerParticipantStatisticsResponse(
+    val participantId: String,
+    val sessions: List<ControllerParticipantStatisticsSessionResponse>,
+)
+
+data class ControllerParticipantStatisticsSessionResponse(
+    val sessionOrder: Int,
+    val sessionId: String,
+    val completedAt: OffsetDateTime,
+    val attention: Double,
+    val stressResistance: Double,
+    val responsibility: Double,
+    val adaptability: Double,
+    val decisionSpeedAccuracy: Double,
 )
