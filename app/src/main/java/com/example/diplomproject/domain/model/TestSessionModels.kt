@@ -148,6 +148,35 @@ data class ControllerParticipantStatisticsSession(
     val decisionSpeedAccuracy: Double,
 ) : Serializable
 
+
+data class ControllerScaleValues(
+    val attention: Double,
+    val stressResistance: Double,
+    val responsibility: Double,
+    val adaptability: Double,
+    val decisionSpeedAccuracy: Double,
+) : Serializable
+
+data class ControllerQuestionOptionDraft(
+    val text: String,
+    val order: Int,
+    val contributionValue: Double,
+    val scaleContributions: ControllerScaleValues,
+) : Serializable
+
+data class ControllerQuestionDraft(
+    val text: String,
+    val difficulty: Int = 1,
+    val priority: Int = 0,
+    val options: List<ControllerQuestionOptionDraft>,
+) : Serializable
+
+data class ControllerTestDraft(
+    val name: String,
+    val description: String? = null,
+    val questions: List<ControllerQuestionDraft>,
+) : Serializable
+
 enum class CandidateMetric(val title: String) {
     StressResistance("Stress Resistance"),
     Attention("Attention"),

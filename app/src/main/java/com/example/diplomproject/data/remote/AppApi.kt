@@ -34,6 +34,12 @@ interface AppApi {
         @Body request: ControllerTokenRequestDto
     ): ControllerTokenResponseDto
 
+
+    @POST("token-management/tests")
+    suspend fun createControllerTest(
+        @Body request: CreateControllerTestRequestDto
+    ): CreateControllerTestResponseDto
+
     @GET("token-management/tokens")
     suspend fun getControllerTokens(): List<ControllerTokenResponseDto>
 

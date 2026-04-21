@@ -3,6 +3,11 @@ package com.example.diplomproject.data.repository
 import com.example.diplomproject.data.local.SessionManager
 import com.example.diplomproject.data.remote.AppApi
 import com.example.diplomproject.data.remote.ControllerTokenRequestDto
+import com.example.diplomproject.data.remote.CreateControllerQuestionOptionRequestDto
+import com.example.diplomproject.data.remote.CreateControllerQuestionRequestDto
+import com.example.diplomproject.data.remote.CreateControllerScaleValuesDto
+import com.example.diplomproject.data.remote.CreateControllerTestRequestDto
+import com.example.diplomproject.data.remote.CreateControllerTestResponseDto
 import com.example.diplomproject.data.remote.ControllerTokenResponseDto
 import com.example.diplomproject.data.remote.ControllerTokenResultListItemResponseDto
 import com.example.diplomproject.data.remote.ControllerParticipantListItemResponseDto
@@ -24,6 +29,10 @@ import com.example.diplomproject.data.remote.TestCategoryDto
 import com.example.diplomproject.data.remote.TokenPreviewRequestDto
 import com.example.diplomproject.domain.model.AnswerProgress
 import com.example.diplomproject.domain.model.CandidateResultHistoryItem
+import com.example.diplomproject.domain.model.ControllerQuestionDraft
+import com.example.diplomproject.domain.model.ControllerQuestionOptionDraft
+import com.example.diplomproject.domain.model.ControllerScaleValues
+import com.example.diplomproject.domain.model.ControllerTestDraft
 import com.example.diplomproject.domain.model.ControllerTokenItem
 import com.example.diplomproject.domain.model.ControllerParticipantListItem
 import com.example.diplomproject.domain.model.ControllerParticipantResults
@@ -76,6 +85,9 @@ class TestSessionRepositoryImpl @Inject constructor(
 
     override suspend fun createControllerToken(categoryId: String): ControllerTokenItem =
         appApi.createControllerToken(ControllerTokenRequestDto(categoryId)).toDomain()
+
+    override suspend fun createControllerTest(draft: ControllerTestDraft): TestCategory =
+        appApi.createControllerTest(draft.toDto()).toDomain()
 
     override suspend fun getControllerTokens(): List<ControllerTokenItem> =
         appApi.getControllerTokens().map { it.toDomain() }
@@ -136,6 +148,40 @@ class TestSessionRepositoryImpl @Inject constructor(
         return result
     }
 }
+
+
+
+private fun ControllerTestDraft.toDto(): CreateControllerTestRequestDto = CreateControllerTestRequestDto(
+    name = name,
+    description = description,
+    questions = questions.map { it.toDto() },
+)
+
+private fun ControllerQuestionDraft.toDto(): CreateControllerQuestionRequestDto = CreateControllerQuestionRequestDto(
+    text = text,
+    difficulty = difficulty,
+    priority = priority,
+    options = options.map { it.toDto() },
+)
+
+private fun ControllerQuestionOptionDraft.toDto(): CreateControllerQuestionOptionRequestDto =
+    CreateControllerQuestionOptionRequestDto(
+        text = text,
+        order = order,
+        contributionValue = contributionValue,
+        scaleContributions = scaleContributions.toDto(),
+    )
+
+private fun ControllerScaleValues.toDto(): CreateControllerScaleValuesDto = CreateControllerScaleValuesDto(
+    attention = attention,
+    stressResistance = stressResistance,
+    responsibility = responsibility,
+    adaptability = adaptability,
+    decisionSpeedAccuracy = decisionSpeedAccuracy,
+)
+
+private fun CreateControllerTestResponseDto.toDomain(): TestCategory =
+    TestCategory(id = categoryId, code = code, name = name, description = null)
 
 private fun TestCategoryDto.toDomain(): TestCategory = TestCategory(id, code, name, description)
 

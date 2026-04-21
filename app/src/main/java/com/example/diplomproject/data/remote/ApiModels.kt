@@ -61,6 +61,48 @@ data class ControllerTokenResponseDto(
     @SerialName("isUsed") val isUsed: Boolean,
 )
 
+
+@Serializable
+data class CreateControllerTestRequestDto(
+    @SerialName("name") val name: String,
+    @SerialName("description") val description: String? = null,
+    @SerialName("questions") val questions: List<CreateControllerQuestionRequestDto>,
+)
+
+@Serializable
+data class CreateControllerQuestionRequestDto(
+    @SerialName("text") val text: String,
+    @SerialName("difficulty") val difficulty: Int,
+    @SerialName("priority") val priority: Int,
+    @SerialName("options") val options: List<CreateControllerQuestionOptionRequestDto>,
+)
+
+@Serializable
+data class CreateControllerQuestionOptionRequestDto(
+    @SerialName("text") val text: String,
+    @SerialName("order") val order: Int,
+    @SerialName("contributionValue") val contributionValue: Double,
+    @SerialName("scaleContributions") val scaleContributions: CreateControllerScaleValuesDto,
+)
+
+@Serializable
+data class CreateControllerScaleValuesDto(
+    @SerialName("attention") val attention: Double,
+    @SerialName("stressResistance") val stressResistance: Double,
+    @SerialName("responsibility") val responsibility: Double,
+    @SerialName("adaptability") val adaptability: Double,
+    @SerialName("decisionSpeedAccuracy") val decisionSpeedAccuracy: Double,
+)
+
+
+@Serializable
+data class CreateControllerTestResponseDto(
+    @SerialName("categoryId") val categoryId: String,
+    @SerialName("code") val code: String,
+    @SerialName("name") val name: String,
+    @SerialName("questionsCount") val questionsCount: Int,
+)
+
 @Serializable
 data class NextQuestionResponseDto(
     @SerialName("sessionId") val sessionId: String,
