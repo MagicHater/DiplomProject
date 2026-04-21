@@ -61,30 +61,30 @@ $gitCommit = "unknown"
 try { $gitBranch = (git rev-parse --abbrev-ref HEAD).Trim() } catch {}
 try { $gitCommit = (git rev-parse --short HEAD).Trim() } catch {}
 
-Write-Host "[meta] start-local-backend.ps1 v4"
+Write-Host "[meta] start-local-backend.ps1 v5"
 Write-Host "[meta] git branch: $gitBranch, commit: $gitCommit, RESET_DB=$([int]$shouldResetDb)"
 Write-Host "[meta] DB: $dbUrl"
 
-Write-Host "[1/4] Stopping compose stack (if exists)..."
+Write-Host "[1/5] Stopping compose stack (if exists)..."
 docker compose -f $composeFile down --remove-orphans | Out-Null
 
 if ($shouldResetDb) {
-    Write-Host "[2/4] RESET_DB enabled -> removing Postgres volume and local DB data..."
+    Write-Host "[2/5] RESET_DB enabled -> removing Postgres volume and local DB data..."
     Write-Host "[warn] This will delete ALL local PostgreSQL data for this project."
     docker compose -f $composeFile down -v --remove-orphans | Out-Null
 }
 else {
-    Write-Host "[2/4] Keeping existing Postgres volume."
+    Write-Host "[2/5] Keeping existing Postgres volume."
     Write-Host "[hint] If Flyway reports checksum mismatch, rerun with:"
     Write-Host "       ./backend/scripts/start-local-backend.ps1 -ResetDb"
     Write-Host "       or"
     Write-Host "       `$env:RESET_DB=1; ./backend/scripts/start-local-backend.ps1"
 }
 
-Write-Host "[3/4] Starting Postgres on host port 5433..."
+Write-Host "[3/5] Starting Postgres on host port 5433..."
 docker compose -f $composeFile up -d postgres | Out-Null
 
-Write-Host "[4/4] Waiting for Postgres health..."
+Write-Host "[4/5] Waiting for Postgres health..."
 $healthy = Wait-PostgresHealthy -MaxAttempts 60
 
 if (-not $healthy) {
@@ -94,13 +94,13 @@ if (-not $healthy) {
     exit 1
 }
 
-Write-Host "[run] Starting backend with explicit DB env..."
+Write-Host "[5/5] Cleaning backend build and starting backend with explicit DB env..."
 $env:DB_URL = $dbUrl
 $env:DB_USERNAME = $dbUser
 $env:DB_PASSWORD = $dbPass
 
 try {
-    ./gradlew :backend:bootRun
+    ./gradlew :backend:clean :backend:bootRun
 }
 finally {
     Remove-Item Env:DB_URL -ErrorAction SilentlyContinue
