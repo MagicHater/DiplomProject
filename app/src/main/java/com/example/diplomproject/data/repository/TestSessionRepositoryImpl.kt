@@ -11,6 +11,20 @@ import com.example.diplomproject.data.remote.CreateControllerTestResponseDto
 import com.example.diplomproject.data.remote.ControllerTokenResponseDto
 import com.example.diplomproject.data.remote.ControllerTokenResultListItemResponseDto
 import com.example.diplomproject.data.remote.ControllerParticipantListItemResponseDto
+import com.example.diplomproject.data.remote.CreateCustomTestOptionRequestDto
+import com.example.diplomproject.data.remote.CreateCustomTestQuestionRequestDto
+import com.example.diplomproject.data.remote.CreateCustomTestRequestDto
+import com.example.diplomproject.data.remote.CustomTestAnswerRequestDto
+import com.example.diplomproject.data.remote.CustomTestDetailsDto
+import com.example.diplomproject.data.remote.CustomTestListItemDto
+import com.example.diplomproject.data.remote.CustomTestOptionDetailsDto
+import com.example.diplomproject.data.remote.CustomTestOptionStatisticsDto
+import com.example.diplomproject.data.remote.CustomTestQuestionDetailsDto
+import com.example.diplomproject.data.remote.CustomTestQuestionStatisticsDto
+import com.example.diplomproject.data.remote.CustomTestResultAnswerDto
+import com.example.diplomproject.data.remote.CustomTestResultItemDto
+import com.example.diplomproject.data.remote.CustomTestStatisticsDto
+import com.example.diplomproject.data.remote.CustomTestSubmissionRequestDto
 import com.example.diplomproject.data.remote.ControllerParticipantResultsResponseDto
 import com.example.diplomproject.data.remote.ControllerParticipantStatisticsResponseDto
 import com.example.diplomproject.data.remote.ControllerParticipantStatisticsSessionResponseDto
@@ -39,6 +53,20 @@ import com.example.diplomproject.domain.model.ControllerParticipantResults
 import com.example.diplomproject.domain.model.ControllerParticipantStatistics
 import com.example.diplomproject.domain.model.ControllerParticipantStatisticsSession
 import com.example.diplomproject.domain.model.ControllerTokenResultHistoryItem
+import com.example.diplomproject.domain.model.CustomTestAnswerDraft
+import com.example.diplomproject.domain.model.CustomTestDetails
+import com.example.diplomproject.domain.model.CustomTestDraft
+import com.example.diplomproject.domain.model.CustomTestListItem
+import com.example.diplomproject.domain.model.CustomTestOptionDetails
+import com.example.diplomproject.domain.model.CustomTestOptionDraft
+import com.example.diplomproject.domain.model.CustomTestOptionStatistics
+import com.example.diplomproject.domain.model.CustomTestQuestionDetails
+import com.example.diplomproject.domain.model.CustomTestQuestionDraft
+import com.example.diplomproject.domain.model.CustomTestQuestionStatistics
+import com.example.diplomproject.domain.model.CustomTestResultAnswer
+import com.example.diplomproject.domain.model.CustomTestResultItem
+import com.example.diplomproject.domain.model.CustomTestStatistics
+import com.example.diplomproject.domain.model.CustomTestSubmissionDraft
 import com.example.diplomproject.domain.model.FinishedSessionResult
 import com.example.diplomproject.domain.model.NextQuestionPayload
 import com.example.diplomproject.domain.model.ScaleInterpretations
@@ -94,6 +122,28 @@ class TestSessionRepositoryImpl @Inject constructor(
 
     override suspend fun getControllerTokenResults(): List<ControllerTokenResultHistoryItem> =
         appApi.getControllerTokenResults().map { it.toDomain() }
+
+    override suspend fun getAvailableCustomTests(): List<CustomTestListItem> =
+        appApi.getAvailableCustomTests().map { it.toDomain() }
+
+    override suspend fun createCustomTest(draft: CustomTestDraft): String =
+        appApi.createCustomTest(draft.toCustomDto()).testId
+
+    override suspend fun getMyCustomTests(): List<CustomTestListItem> =
+        appApi.getMyCustomTests().map { it.toDomain() }
+
+    override suspend fun getCustomTestDetails(testId: String): CustomTestDetails =
+        appApi.getCustomTestDetails(testId).toDomain()
+
+    override suspend fun submitCustomTest(testId: String, submission: CustomTestSubmissionDraft) {
+        appApi.submitCustomTest(testId, submission.toDto())
+    }
+
+    override suspend fun getCustomTestResults(testId: String): List<CustomTestResultItem> =
+        appApi.getCustomTestResults(testId).map { it.toDomain() }
+
+    override suspend fun getCustomTestStatistics(testId: String): CustomTestStatistics =
+        appApi.getCustomTestStatistics(testId).toDomain()
 
     override suspend fun getControllerParticipants(): List<ControllerParticipantListItem> =
         appApi.getControllerParticipants().map { it.toDomain() }
@@ -309,3 +359,88 @@ private fun ControllerParticipantStatisticsSessionResponseDto.toDomain(): Contro
         adaptability = adaptability,
         decisionSpeedAccuracy = decisionSpeedAccuracy,
     )
+
+
+private fun CustomTestDraft.toCustomDto(): CreateCustomTestRequestDto = CreateCustomTestRequestDto(
+    title = title,
+    description = description,
+    allowedEmailsInput = allowedEmailsInput,
+    questions = questions.map { it.toDto() },
+)
+
+private fun CustomTestQuestionDraft.toDto(): CreateCustomTestQuestionRequestDto = CreateCustomTestQuestionRequestDto(
+    text = text,
+    options = options.map { it.toDto() },
+)
+
+private fun CustomTestOptionDraft.toDto(): CreateCustomTestOptionRequestDto = CreateCustomTestOptionRequestDto(text = text)
+
+private fun CustomTestSubmissionDraft.toDto(): CustomTestSubmissionRequestDto =
+    CustomTestSubmissionRequestDto(answers = answers.map { it.toDto() })
+
+private fun CustomTestAnswerDraft.toDto(): CustomTestAnswerRequestDto =
+    CustomTestAnswerRequestDto(questionId = questionId, optionId = optionId)
+
+private fun CustomTestListItemDto.toDomain(): CustomTestListItem = CustomTestListItem(
+    id = id,
+    title = title,
+    description = description,
+    questionsCount = questionsCount,
+    allowedEmailsCount = allowedEmailsCount,
+    submissionsCount = submissionsCount,
+    createdAt = createdAt,
+)
+
+private fun CustomTestDetailsDto.toDomain(): CustomTestDetails = CustomTestDetails(
+    id = id,
+    title = title,
+    description = description,
+    createdAt = createdAt,
+    allowedEmails = allowedEmails,
+    questions = questions.map { it.toDomain() },
+)
+
+private fun CustomTestQuestionDetailsDto.toDomain(): CustomTestQuestionDetails = CustomTestQuestionDetails(
+    id = id,
+    order = order,
+    text = text,
+    options = options.map { it.toDomain() },
+)
+
+private fun CustomTestOptionDetailsDto.toDomain(): CustomTestOptionDetails =
+    CustomTestOptionDetails(id = id, order = order, text = text)
+
+private fun CustomTestResultItemDto.toDomain(): CustomTestResultItem = CustomTestResultItem(
+    submissionId = submissionId,
+    userId = userId,
+    userName = userName,
+    userEmail = userEmail,
+    submittedAt = submittedAt,
+    answers = answers.map { it.toDomain() },
+)
+
+private fun CustomTestResultAnswerDto.toDomain(): CustomTestResultAnswer = CustomTestResultAnswer(
+    questionId = questionId,
+    questionText = questionText,
+    selectedOptionId = selectedOptionId,
+    selectedOptionText = selectedOptionText,
+)
+
+private fun CustomTestStatisticsDto.toDomain(): CustomTestStatistics = CustomTestStatistics(
+    testId = testId,
+    totalSubmissions = totalSubmissions,
+    questions = questions.map { it.toDomain() },
+)
+
+private fun CustomTestQuestionStatisticsDto.toDomain(): CustomTestQuestionStatistics = CustomTestQuestionStatistics(
+    questionId = questionId,
+    questionText = questionText,
+    options = options.map { it.toDomain() },
+)
+
+private fun CustomTestOptionStatisticsDto.toDomain(): CustomTestOptionStatistics = CustomTestOptionStatistics(
+    optionId = optionId,
+    optionText = optionText,
+    selectionsCount = selectionsCount,
+    selectionsPercent = selectionsPercent,
+)

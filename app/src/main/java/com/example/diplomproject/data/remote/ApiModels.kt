@@ -234,3 +234,114 @@ data class ControllerParticipantStatisticsSessionResponseDto(
     @SerialName("adaptability") val adaptability: Double,
     @SerialName("decisionSpeedAccuracy") val decisionSpeedAccuracy: Double,
 )
+
+@Serializable
+data class CreateCustomTestRequestDto(
+    @SerialName("title") val title: String,
+    @SerialName("description") val description: String? = null,
+    @SerialName("allowedEmailsInput") val allowedEmailsInput: String,
+    @SerialName("questions") val questions: List<CreateCustomTestQuestionRequestDto>,
+)
+
+@Serializable
+data class CreateCustomTestQuestionRequestDto(
+    @SerialName("text") val text: String,
+    @SerialName("options") val options: List<CreateCustomTestOptionRequestDto>,
+)
+
+@Serializable
+data class CreateCustomTestOptionRequestDto(
+    @SerialName("text") val text: String,
+)
+
+@Serializable
+data class CreateCustomTestResponseDto(
+    @SerialName("testId") val testId: String,
+)
+
+@Serializable
+data class CustomTestListItemDto(
+    @SerialName("id") val id: String,
+    @SerialName("title") val title: String,
+    @SerialName("description") val description: String? = null,
+    @SerialName("questionsCount") val questionsCount: Int,
+    @SerialName("allowedEmailsCount") val allowedEmailsCount: Int,
+    @SerialName("submissionsCount") val submissionsCount: Long,
+    @SerialName("createdAt") val createdAt: String,
+)
+
+@Serializable
+data class CustomTestDetailsDto(
+    @SerialName("id") val id: String,
+    @SerialName("title") val title: String,
+    @SerialName("description") val description: String? = null,
+    @SerialName("createdAt") val createdAt: String,
+    @SerialName("allowedEmails") val allowedEmails: List<String>,
+    @SerialName("questions") val questions: List<CustomTestQuestionDetailsDto>,
+)
+
+@Serializable
+data class CustomTestQuestionDetailsDto(
+    @SerialName("id") val id: String,
+    @SerialName("order") val order: Int,
+    @SerialName("text") val text: String,
+    @SerialName("options") val options: List<CustomTestOptionDetailsDto>,
+)
+
+@Serializable
+data class CustomTestOptionDetailsDto(
+    @SerialName("id") val id: String,
+    @SerialName("order") val order: Int,
+    @SerialName("text") val text: String,
+)
+
+@Serializable
+data class CustomTestSubmissionRequestDto(
+    @SerialName("answers") val answers: List<CustomTestAnswerRequestDto>,
+)
+
+@Serializable
+data class CustomTestAnswerRequestDto(
+    @SerialName("questionId") val questionId: String,
+    @SerialName("optionId") val optionId: String,
+)
+
+@Serializable
+data class CustomTestResultItemDto(
+    @SerialName("submissionId") val submissionId: String,
+    @SerialName("userId") val userId: String,
+    @SerialName("userName") val userName: String,
+    @SerialName("userEmail") val userEmail: String,
+    @SerialName("submittedAt") val submittedAt: String,
+    @SerialName("answers") val answers: List<CustomTestResultAnswerDto>,
+)
+
+@Serializable
+data class CustomTestResultAnswerDto(
+    @SerialName("questionId") val questionId: String,
+    @SerialName("questionText") val questionText: String,
+    @SerialName("selectedOptionId") val selectedOptionId: String,
+    @SerialName("selectedOptionText") val selectedOptionText: String,
+)
+
+@Serializable
+data class CustomTestStatisticsDto(
+    @SerialName("testId") val testId: String,
+    @SerialName("totalSubmissions") val totalSubmissions: Long,
+    @SerialName("questions") val questions: List<CustomTestQuestionStatisticsDto>,
+)
+
+@Serializable
+data class CustomTestQuestionStatisticsDto(
+    @SerialName("questionId") val questionId: String,
+    @SerialName("questionText") val questionText: String,
+    @SerialName("options") val options: List<CustomTestOptionStatisticsDto>,
+)
+
+@Serializable
+data class CustomTestOptionStatisticsDto(
+    @SerialName("optionId") val optionId: String,
+    @SerialName("optionText") val optionText: String,
+    @SerialName("selectionsCount") val selectionsCount: Long,
+    @SerialName("selectionsPercent") val selectionsPercent: Double,
+)

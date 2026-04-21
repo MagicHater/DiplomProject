@@ -24,12 +24,17 @@ import com.example.diplomproject.ui.screens.AppSessionState
 import com.example.diplomproject.ui.screens.AuthViewModel
 import com.example.diplomproject.ui.screens.CandidateDetailsScreen
 import com.example.diplomproject.ui.screens.CandidateDetailsViewModel
+import com.example.diplomproject.ui.screens.ControllerCustomTestsScreen
+import com.example.diplomproject.ui.screens.ControllerCustomTestStatisticsScreen
+import com.example.diplomproject.ui.screens.ControllerCustomTestResultsScreen
+import com.example.diplomproject.ui.screens.ControllerCustomTestDetailsScreen
+import com.example.diplomproject.ui.screens.ControllerCreateCustomTestScreen
+import com.example.diplomproject.ui.screens.CandidateCustomTestsScreen
+import com.example.diplomproject.ui.screens.CandidateCustomTestPassScreen
 import com.example.diplomproject.ui.screens.CandidateHomeScreen
 import com.example.diplomproject.ui.screens.CandidateHomeViewModel
 import com.example.diplomproject.ui.screens.CandidateListScreen
 import com.example.diplomproject.ui.screens.CandidateListViewModel
-import com.example.diplomproject.ui.screens.ControllerCreateTestScreen
-import com.example.diplomproject.ui.screens.ControllerCreateTestViewModel
 import com.example.diplomproject.ui.screens.ControllerHomeScreen
 import com.example.diplomproject.ui.screens.ControllerHomeViewModel
 import com.example.diplomproject.ui.screens.GuestCompletionScreen
@@ -128,6 +133,7 @@ fun AppNavHost(
                 onStartByTokenClick = candidateHomeViewModel::startByToken,
                 onResultClick = { navController.navigate(AppDestination.History.route) },
                 onHistoryClick = { navController.navigate(AppDestination.History.route) },
+                onCustomTestsClick = { navController.navigate(AppDestination.CandidateCustomTests.route) },
                 onLogoutClick = { authViewModel.logout() },
             )
         }
@@ -153,36 +159,76 @@ fun AppNavHost(
                 onCreateTestClick = { navController.navigate(AppDestination.ControllerCreateTest.route) },
                 onCandidateListClick = { navController.navigate(AppDestination.CandidateList.route) },
                 onHistoryClick = { navController.navigate(AppDestination.History.route) },
+                onCustomTestsClick = { navController.navigate(AppDestination.ControllerCustomTests.route) },
                 onLogoutClick = { authViewModel.logout() },
             )
         }
 
         composable(AppDestination.ControllerCreateTest.route) {
-            val createTestViewModel: ControllerCreateTestViewModel = hiltViewModel()
-            val createTestUiState by createTestViewModel.uiState.collectAsState()
-
-            ControllerCreateTestScreen(
-                uiState = createTestUiState,
+            ControllerCreateCustomTestScreen(
                 onBackClick = { navController.popBackStack() },
-                onNameChanged = createTestViewModel::onNameChanged,
-                onDescriptionChanged = createTestViewModel::onDescriptionChanged,
-                onAddQuestion = createTestViewModel::addQuestion,
-                onRemoveQuestion = createTestViewModel::removeQuestion,
-                onQuestionTextChanged = createTestViewModel::onQuestionTextChanged,
-                onAddOption = createTestViewModel::addOption,
-                onRemoveOption = createTestViewModel::removeOption,
-                onOptionTextChanged = createTestViewModel::onOptionTextChanged,
-                onOptionOrderChanged = createTestViewModel::onOptionOrderChanged,
-                onOptionContributionChanged = createTestViewModel::onOptionContributionChanged,
-                onOptionScaleChanged = createTestViewModel::onOptionScaleChanged,
-                onSaveClick = {
-                    createTestViewModel.saveTest {
-                        navController.previousBackStackEntry
-                            ?.savedStateHandle
-                            ?.set("controller_reload_categories", true)
-                        navController.popBackStack()
+                onSuccess = {
+                    navController.navigate(AppDestination.ControllerCustomTests.route) {
+                        popUpTo(AppDestination.ControllerHome.route)
                     }
                 },
+            )
+        }
+
+        composable(AppDestination.ControllerCustomTests.route) {
+            ControllerCustomTestsScreen(
+                onBackClick = { navController.popBackStack() },
+                onOpenDetails = { navController.navigate(AppDestination.ControllerCustomTestDetails.createRoute(it)) },
+                onOpenResults = { navController.navigate(AppDestination.ControllerCustomTestResults.createRoute(it)) },
+                onOpenStatistics = { navController.navigate(AppDestination.ControllerCustomTestStatistics.createRoute(it)) },
+            )
+        }
+
+        composable(AppDestination.CandidateCustomTests.route) {
+            CandidateCustomTestsScreen(
+                onBackClick = { navController.popBackStack() },
+                onOpenTest = { navController.navigate(AppDestination.CandidateCustomTestPass.createRoute(it)) },
+            )
+        }
+
+        composable(
+            route = AppDestination.ControllerCustomTestDetails.route,
+            arguments = listOf(navArgument(AppDestination.ControllerCustomTestDetails.testIdArg) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            ControllerCustomTestDetailsScreen(
+                testId = backStackEntry.arguments?.getString(AppDestination.ControllerCustomTestDetails.testIdArg).orEmpty(),
+                onBackClick = { navController.popBackStack() },
+            )
+        }
+
+        composable(
+            route = AppDestination.ControllerCustomTestResults.route,
+            arguments = listOf(navArgument(AppDestination.ControllerCustomTestResults.testIdArg) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            ControllerCustomTestResultsScreen(
+                testId = backStackEntry.arguments?.getString(AppDestination.ControllerCustomTestResults.testIdArg).orEmpty(),
+                onBackClick = { navController.popBackStack() },
+            )
+        }
+
+        composable(
+            route = AppDestination.ControllerCustomTestStatistics.route,
+            arguments = listOf(navArgument(AppDestination.ControllerCustomTestStatistics.testIdArg) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            ControllerCustomTestStatisticsScreen(
+                testId = backStackEntry.arguments?.getString(AppDestination.ControllerCustomTestStatistics.testIdArg).orEmpty(),
+                onBackClick = { navController.popBackStack() },
+            )
+        }
+
+        composable(
+            route = AppDestination.CandidateCustomTestPass.route,
+            arguments = listOf(navArgument(AppDestination.CandidateCustomTestPass.testIdArg) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            CandidateCustomTestPassScreen(
+                testId = backStackEntry.arguments?.getString(AppDestination.CandidateCustomTestPass.testIdArg).orEmpty(),
+                onBackClick = { navController.popBackStack() },
+                onSubmitted = { navController.popBackStack() },
             )
         }
 

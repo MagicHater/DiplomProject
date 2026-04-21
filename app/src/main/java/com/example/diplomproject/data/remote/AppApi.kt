@@ -49,6 +49,31 @@ interface AppApi {
     @GET("token-management/results/{sessionId}")
     suspend fun getControllerTokenResult(@Path("sessionId") sessionId: String): FinishSessionResponseDto
 
+
+    @GET("custom-tests/available")
+    suspend fun getAvailableCustomTests(): List<CustomTestListItemDto>
+
+    @POST("custom-tests")
+    suspend fun createCustomTest(@Body request: CreateCustomTestRequestDto): CreateCustomTestResponseDto
+
+    @GET("custom-tests/my")
+    suspend fun getMyCustomTests(): List<CustomTestListItemDto>
+
+    @GET("custom-tests/{testId}")
+    suspend fun getCustomTestDetails(@Path("testId") testId: String): CustomTestDetailsDto
+
+    @POST("custom-tests/{testId}/submissions")
+    suspend fun submitCustomTest(
+        @Path("testId") testId: String,
+        @Body request: CustomTestSubmissionRequestDto,
+    )
+
+    @GET("custom-tests/{testId}/results")
+    suspend fun getCustomTestResults(@Path("testId") testId: String): List<CustomTestResultItemDto>
+
+    @GET("custom-tests/{testId}/statistics")
+    suspend fun getCustomTestStatistics(@Path("testId") testId: String): CustomTestStatisticsDto
+
     @GET("controller/candidates")
     suspend fun getControllerParticipants(): List<ControllerParticipantListItemResponseDto>
 
