@@ -164,8 +164,13 @@ fun CandidateHomeScreen(
             }
 
             item {
+<<<<<<< codex/add-button-for-custom-tests-in-candidatehomescreen-bup4ep
                 Button(onClick = onCustomTestsClick, modifier = Modifier.fillMaxWidth()) {
                     Text("Доступные пользовательские тесты")
+=======
+                OutlinedButton(onClick = onCustomTestsClick, modifier = Modifier.fillMaxWidth()) {
+                    Text("Мои пользовательские тесты")
+>>>>>>> master
                 }
             }
 
