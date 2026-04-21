@@ -12,23 +12,38 @@ import okhttp3.Response
 class AuthInterceptor @Inject constructor(
     private val sessionManager: SessionManager,
 ) : Interceptor {
+
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
         var requestBuilder = originalRequest.newBuilder()
 
+        val path = originalRequest.url.encodedPath
         val explicitAuthHeader = originalRequest.header("Authorization")
-        if (!originalRequest.shouldSkipAuthHeader() && explicitAuthHeader.isNullOrBlank()) {
-            val token = runBlocking { sessionManager.tokenFlow.firstOrNull() }.normalizeJwtToken()
+        val explicitGuestHeader = originalRequest.header("X-Guest-Session-Key")
 
-            if (!token.isNullOrBlank()) {
-                requestBuilder = requestBuilder.header("Authorization", "Bearer $token")
-            }
+        val guestSessionKey = if (originalRequest.shouldAttachGuestSessionHeader() && explicitGuestHeader.isNullOrBlank()) {
+            runBlocking { sessionManager.guestSessionKeyFlow.firstOrNull() }
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+        } else {
+            explicitGuestHeader
         }
 
-        if (originalRequest.shouldAttachGuestSessionHeader() && originalRequest.header("X-Guest-Session-Key").isNullOrBlank()) {
-            val guestSessionKey = runBlocking { sessionManager.guestSessionKeyFlow.firstOrNull() }
-            if (!guestSessionKey.isNullOrBlank()) {
-                requestBuilder = requestBuilder.header("X-Guest-Session-Key", guestSessionKey)
+        val requestUsesGuestSession = !guestSessionKey.isNullOrBlank() && originalRequest.shouldAttachGuestSessionHeader()
+
+        if (!guestSessionKey.isNullOrBlank() && originalRequest.shouldAttachGuestSessionHeader()) {
+            requestBuilder = requestBuilder.header("X-Guest-Session-Key", guestSessionKey)
+        }
+
+        val shouldAttachAuth =
+            !originalRequest.shouldSkipAuthHeader() &&
+                    explicitAuthHeader.isNullOrBlank() &&
+                    !requestUsesGuestSession
+
+        if (shouldAttachAuth) {
+            val token = runBlocking { sessionManager.tokenFlow.firstOrNull() }.normalizeJwtToken()
+            if (!token.isNullOrBlank()) {
+                requestBuilder = requestBuilder.header("Authorization", "Bearer $token")
             }
         }
 
@@ -38,7 +53,10 @@ class AuthInterceptor @Inject constructor(
 
 private fun okhttp3.Request.shouldSkipAuthHeader(): Boolean {
     val path = url.encodedPath
-    return path == "/auth/login" || path == "/auth/register"
+    return path == "/auth/login" ||
+            path == "/auth/register" ||
+            path == "/token-access/preview" ||
+            path == "/token-access/start-guest"
 }
 
 private fun okhttp3.Request.shouldAttachGuestSessionHeader(): Boolean {
