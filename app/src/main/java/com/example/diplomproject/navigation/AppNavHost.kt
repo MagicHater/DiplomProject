@@ -27,6 +27,7 @@ import com.example.diplomproject.ui.screens.CandidateHomeViewModel
 import com.example.diplomproject.ui.screens.CandidateListScreen
 import com.example.diplomproject.ui.screens.ControllerHomeScreen
 import com.example.diplomproject.ui.screens.ControllerHomeViewModel
+import com.example.diplomproject.ui.screens.GuestCompletionScreen
 import com.example.diplomproject.ui.screens.HistoryScreen
 import com.example.diplomproject.ui.screens.HistoryViewModel
 import com.example.diplomproject.ui.screens.LoginScreen
@@ -161,16 +162,26 @@ fun AppNavHost(
                 if (testUiState.navigateToResult) {
                     val finishedResult = testUiState.finishResult ?: return@LaunchedEffect
 
-                    navController.currentBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("prefetchedResult", finishedResult)
-
-                    navController.navigate(AppDestination.Result.createRoute(finishedResult.sessionId)) {
-                        popUpTo(AppDestination.Test.route) {
-                            inclusive = true
+                    if (authenticatedRole == null) {
+                        navController.navigate(AppDestination.GuestComplete.route) {
+                            popUpTo(AppDestination.Test.route) {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
                         }
-                        launchSingleTop = true
+                    } else {
+                        navController.currentBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("prefetchedResult", finishedResult)
+
+                        navController.navigate(AppDestination.Result.createRoute(finishedResult.sessionId)) {
+                            popUpTo(AppDestination.Test.route) {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
+                        }
                     }
+
                     testViewModel.consumeResultNavigation()
                 }
             }
@@ -180,6 +191,18 @@ fun AppNavHost(
                 onOptionSelected = testViewModel::onOptionSelected,
                 onNextClick = testViewModel::onNextClick,
                 onRetryClick = testViewModel::retryLoad,
+            )
+        }
+
+        composable(AppDestination.GuestComplete.route) {
+            GuestCompletionScreen(
+                onExitClick = {
+                    authViewModel.logout()
+                    navController.navigate(AppDestination.Login.route) {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
             )
         }
 

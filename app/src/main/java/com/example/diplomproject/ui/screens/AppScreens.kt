@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -44,12 +46,11 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.diplomproject.domain.model.FinishedSessionResult
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import com.example.diplomproject.ui.components.ProfileRadarChart
 import com.example.diplomproject.ui.components.RadarMetric
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+
 @Composable
 fun CandidateHomeScreen(
     uiState: CandidateHomeUiState,
@@ -465,6 +466,56 @@ fun ResultScreen(
 }
 
 @Composable
+fun GuestCompletionScreen(
+    onExitClick: () -> Unit,
+) {
+    AppScreenScaffold(title = "Тестирование завершено") { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Spacer(modifier = Modifier.weight(1f))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = "Спасибо за прохождение тестирования",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = "Ваши ответы успешно сохранены. Теперь вы можете завершить работу в приложении.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+
+            Button(
+                onClick = onExitClick,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Выйти")
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
 private fun ResultContent(
     result: FinishedSessionResult,
 ) {
@@ -520,6 +571,7 @@ private fun ResultContent(
         )
     }
 }
+
 @Composable
 private fun radarMetrics(result: FinishedSessionResult): List<RadarMetric> {
     return listOf(
@@ -530,6 +582,7 @@ private fun radarMetrics(result: FinishedSessionResult): List<RadarMetric> {
         RadarMetric("Скор./точн.", result.scores.decisionSpeedAccuracy.toFloat()),
     )
 }
+
 @Composable
 fun HistoryScreen(
     uiState: HistoryUiState,

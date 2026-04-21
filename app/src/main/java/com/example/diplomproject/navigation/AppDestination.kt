@@ -17,6 +17,7 @@ sealed class AppDestination(val route: String) {
         fun createRoute(sessionId: String): String = "result/$sessionId"
     }
 
+    data object GuestComplete : AppDestination("guest_complete")
     data object History : AppDestination("history")
     data object CandidateList : AppDestination("candidate_list")
     data object CandidateDetails : AppDestination("candidate_details")
