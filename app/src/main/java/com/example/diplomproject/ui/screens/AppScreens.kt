@@ -77,6 +77,7 @@ fun CandidateHomeScreen(
     onStartByTokenClick: () -> Unit,
     onResultClick: () -> Unit,
     onHistoryClick: () -> Unit,
+    onCustomTestsClick: () -> Unit,
     onLogoutClick: () -> Unit,
 ) {
     AppScreenScaffold(title = "Кабинет кандидата") { innerPadding ->
@@ -163,6 +164,12 @@ fun CandidateHomeScreen(
             }
 
             item {
+                OutlinedButton(onClick = onCustomTestsClick, modifier = Modifier.fillMaxWidth()) {
+                    Text("Пользовательские тесты")
+                }
+            }
+
+            item {
                 TextButton(onClick = onResultClick, modifier = Modifier.fillMaxWidth()) {
                     Text("Открыть последний результат")
                 }
@@ -199,6 +206,7 @@ fun ControllerHomeScreen(
     onCreateTestClick: () -> Unit,
     onCandidateListClick: () -> Unit,
     onHistoryClick: () -> Unit,
+    onCustomTestsClick: () -> Unit,
     onLogoutClick: () -> Unit,
 ) {
     val clipboardManager = LocalClipboardManager.current
@@ -236,6 +244,12 @@ fun ControllerHomeScreen(
                 title = "Создать тест",
                 subtitle = "Добавление собственного теста с вопросами и вариантами",
                 onClick = onCreateTestClick,
+            )
+
+            ActionCard(
+                title = "Мои пользовательские тесты",
+                subtitle = "Список, результаты и статистика по вашим пользовательским тестам",
+                onClick = onCustomTestsClick,
             )
 
             Card(modifier = Modifier.fillMaxWidth()) {

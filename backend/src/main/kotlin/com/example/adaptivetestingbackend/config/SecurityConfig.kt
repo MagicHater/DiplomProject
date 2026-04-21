@@ -48,6 +48,8 @@ class SecurityConfig(
                     .requestMatchers("/token-management/**").hasRole("CONTROLLER")
 
                     .requestMatchers("/controller/**").hasRole("CONTROLLER")
+                    .requestMatchers("/custom-tests/available", "/custom-tests/*/submissions").authenticated()
+                    .requestMatchers("/custom-tests/**").hasRole("CONTROLLER")
                     .requestMatchers("/test-sessions/**").permitAll()
                     .anyRequest().authenticated()
             }

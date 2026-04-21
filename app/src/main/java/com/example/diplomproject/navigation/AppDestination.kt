@@ -21,6 +21,28 @@ sealed class AppDestination(val route: String) {
     data object History : AppDestination("history")
     data object CandidateList : AppDestination("candidate_list")
     data object ControllerCreateTest : AppDestination("controller_create_test")
+    data object ControllerCustomTests : AppDestination("controller_custom_tests")
+    data object ControllerCustomTestDetails : AppDestination("controller_custom_test_details/{testId}") {
+        const val testIdArg = "testId"
+        fun createRoute(testId: String): String = "controller_custom_test_details/$testId"
+    }
+
+    data object ControllerCustomTestResults : AppDestination("controller_custom_test_results/{testId}") {
+        const val testIdArg = "testId"
+        fun createRoute(testId: String): String = "controller_custom_test_results/$testId"
+    }
+
+    data object ControllerCustomTestStatistics : AppDestination("controller_custom_test_statistics/{testId}") {
+        const val testIdArg = "testId"
+        fun createRoute(testId: String): String = "controller_custom_test_statistics/$testId"
+    }
+
+    data object CandidateCustomTests : AppDestination("candidate_custom_tests")
+    data object CandidateCustomTestPass : AppDestination("candidate_custom_test_pass/{testId}") {
+        const val testIdArg = "testId"
+        fun createRoute(testId: String): String = "candidate_custom_test_pass/$testId"
+    }
+
     data object CandidateDetails : AppDestination("candidate_details/{participantType}/{participantKey}") {
         const val participantTypeArg = "participantType"
         const val participantKeyArg = "participantKey"
