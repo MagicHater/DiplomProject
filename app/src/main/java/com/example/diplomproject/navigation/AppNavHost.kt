@@ -303,6 +303,7 @@ fun AppNavHost(
             LaunchedEffect(Unit) { candidateDetailsViewModel.load() }
             CandidateDetailsScreen(
                 uiState = candidateDetailsUiState,
+                onMetricSelected = candidateDetailsViewModel::selectMetric,
                 onBackToCandidateListClick = {
                     navController.navigate(AppDestination.CandidateList.route)
                 },

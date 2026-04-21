@@ -172,4 +172,23 @@ data class ControllerParticipantResultsResponseDto(
     @SerialName("displayName") val displayName: String,
     @SerialName("email") val email: String? = null,
     @SerialName("sessions") val sessions: List<MyResultListItemResponseDto>,
+    @SerialName("statistics") val statistics: ControllerParticipantStatisticsResponseDto? = null,
+)
+
+@Serializable
+data class ControllerParticipantStatisticsResponseDto(
+    @SerialName("participantId") val participantId: String,
+    @SerialName("sessions") val sessions: List<ControllerParticipantStatisticsSessionResponseDto>,
+)
+
+@Serializable
+data class ControllerParticipantStatisticsSessionResponseDto(
+    @SerialName("sessionOrder") val sessionOrder: Int,
+    @SerialName("sessionId") val sessionId: String,
+    @SerialName("completedAt") val completedAt: String,
+    @SerialName("attention") val attention: Double,
+    @SerialName("stressResistance") val stressResistance: Double,
+    @SerialName("responsibility") val responsibility: Double,
+    @SerialName("adaptability") val adaptability: Double,
+    @SerialName("decisionSpeedAccuracy") val decisionSpeedAccuracy: Double,
 )
