@@ -2,14 +2,18 @@ package com.example.diplomproject.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.IconButton
@@ -43,6 +47,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.json.JSONObject
+import retrofit2.HttpException
 
 @HiltViewModel
 class CustomTestsViewModel @Inject constructor(
@@ -115,7 +121,7 @@ class CustomTestsViewModel @Inject constructor(
             }.onSuccess {
                 _state.value = CustomTestsUiState(success = "Тест создан")
                 onSuccess()
-            }.onFailure { e -> _state.update { it.copy(error = e.message ?: "Ошибка") } }
+            }.onFailure { e -> _state.update { it.copy(error = e.toUiMessage()) } }
         }
     }
 
@@ -123,7 +129,7 @@ class CustomTestsViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { repository.getMyCustomTests() }
                 .onSuccess { _state.update { st -> st.copy(myTests = it, error = null) } }
-                .onFailure { _state.update { st -> st.copy(error = it.message ?: "Ошибка загрузки") } }
+                .onFailure { _state.update { st -> st.copy(error = it.toUiMessage(defaultMessage = "Ошибка загрузки")) } }
         }
     }
 
@@ -131,7 +137,7 @@ class CustomTestsViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { repository.getAvailableCustomTests() }
                 .onSuccess { _state.update { st -> st.copy(availableTests = it, error = null) } }
-                .onFailure { _state.update { st -> st.copy(error = it.message ?: "Ошибка загрузки") } }
+                .onFailure { _state.update { st -> st.copy(error = it.toUiMessage(defaultMessage = "Ошибка загрузки")) } }
         }
     }
 
@@ -139,7 +145,7 @@ class CustomTestsViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { repository.getCustomTestDetails(testId) }
                 .onSuccess { _state.update { st -> st.copy(details = it, error = null) } }
-                .onFailure { _state.update { st -> st.copy(error = it.message ?: "Ошибка загрузки") } }
+                .onFailure { _state.update { st -> st.copy(error = it.toUiMessage(defaultMessage = "Ошибка загрузки")) } }
         }
     }
 
@@ -147,7 +153,7 @@ class CustomTestsViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { repository.getCustomTestResults(testId) }
                 .onSuccess { _state.update { st -> st.copy(results = it, error = null) } }
-                .onFailure { _state.update { st -> st.copy(error = it.message ?: "Ошибка загрузки") } }
+                .onFailure { _state.update { st -> st.copy(error = it.toUiMessage(defaultMessage = "Ошибка загрузки")) } }
         }
     }
 
@@ -155,7 +161,7 @@ class CustomTestsViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { repository.getCustomTestStatistics(testId) }
                 .onSuccess { _state.update { st -> st.copy(statistics = it, error = null) } }
-                .onFailure { _state.update { st -> st.copy(error = it.message ?: "Ошибка загрузки") } }
+                .onFailure { _state.update { st -> st.copy(error = it.toUiMessage(defaultMessage = "Ошибка загрузки")) } }
         }
     }
 
@@ -167,7 +173,7 @@ class CustomTestsViewModel @Inject constructor(
                     CustomTestSubmissionDraft(answers.map { CustomTestAnswerDraft(questionId = it.key, optionId = it.value) }),
                 )
             }.onSuccess { onDone() }
-                .onFailure { _state.update { st -> st.copy(error = it.message ?: "Ошибка отправки") } }
+                .onFailure { _state.update { st -> st.copy(error = it.toUiMessage(defaultMessage = "Ошибка отправки")) } }
         }
     }
 }
@@ -348,49 +354,108 @@ fun ControllerCreateCustomTestScreen(onBackClick: () -> Unit, onSuccess: () -> U
     val state by viewModel.state.collectAsStateWithLifecycleCompat()
     AppScreenScaffold(title = "Создать пользовательский тест", onBackClick = onBackClick) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .navigationBarsPadding()
+                .imePadding(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            OutlinedTextField(value = state.title, onValueChange = viewModel::onTitleChanged, label = { Text("Название") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = state.description, onValueChange = viewModel::onDescriptionChanged, label = { Text("Описание") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(
-                value = state.allowedEmailsInput,
-                onValueChange = viewModel::onEmailsChanged,
-                label = { Text("Разрешенные email (по строкам)") },
-                minLines = 4,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            state.questions.forEachIndexed { index, q ->
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Вопрос ${index + 1}", modifier = Modifier.weight(1f))
-                            if (state.questions.size > 1) IconButton(onClick = { viewModel.removeQuestion(index) }) { Text("✕") }
-                        }
-                        OutlinedTextField(value = q.text, onValueChange = { viewModel.onQuestionChanged(index, it) }, modifier = Modifier.fillMaxWidth(), label = { Text("Текст вопроса") })
-                        q.options.forEachIndexed { optionIndex, option ->
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                contentPadding = PaddingValues(vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                item {
+                    OutlinedTextField(
+                        value = state.title,
+                        onValueChange = viewModel::onTitleChanged,
+                        label = { Text("Название") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                item {
+                    OutlinedTextField(
+                        value = state.description,
+                        onValueChange = viewModel::onDescriptionChanged,
+                        label = { Text("Описание") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                item {
+                    OutlinedTextField(
+                        value = state.allowedEmailsInput,
+                        onValueChange = viewModel::onEmailsChanged,
+                        label = { Text("Разрешенные email (по строкам)") },
+                        minLines = 4,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                itemsIndexed(state.questions) { index, q ->
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                OutlinedTextField(
-                                    value = option,
-                                    onValueChange = { viewModel.onOptionChanged(index, optionIndex, it) },
-                                    modifier = Modifier.weight(1f),
-                                    label = { Text("Вариант ${optionIndex + 1}") },
-                                )
-                                if (q.options.size > 2) IconButton(onClick = { viewModel.removeOption(index, optionIndex) }) { Text("✕") }
+                                Text("Вопрос ${index + 1}", modifier = Modifier.weight(1f))
+                                if (state.questions.size > 1) IconButton(onClick = { viewModel.removeQuestion(index) }) { Text("✕") }
                             }
+                            OutlinedTextField(
+                                value = q.text,
+                                onValueChange = { viewModel.onQuestionChanged(index, it) },
+                                modifier = Modifier.fillMaxWidth(),
+                                label = { Text("Текст вопроса") },
+                            )
+                            q.options.forEachIndexed { optionIndex, option ->
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    OutlinedTextField(
+                                        value = option,
+                                        onValueChange = { viewModel.onOptionChanged(index, optionIndex, it) },
+                                        modifier = Modifier.weight(1f),
+                                        label = { Text("Вариант ${optionIndex + 1}") },
+                                    )
+                                    if (q.options.size > 2) IconButton(onClick = { viewModel.removeOption(index, optionIndex) }) { Text("✕") }
+                                }
+                            }
+                            OutlinedButton(onClick = { viewModel.addOption(index) }) { Text("Добавить вариант") }
                         }
-                        OutlinedButton(onClick = { viewModel.addOption(index) }) { Text("Добавить вариант") }
                     }
                 }
+                item {
+                    OutlinedButton(onClick = viewModel::addQuestion, modifier = Modifier.fillMaxWidth()) { Text("Добавить вопрос") }
+                }
+                item {
+                    state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                }
+                item {
+                    state.success?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+                }
             }
-            OutlinedButton(onClick = viewModel::addQuestion, modifier = Modifier.fillMaxWidth()) { Text("Добавить вопрос") }
-            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            state.success?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
             Spacer(Modifier.height(6.dp))
-            Button(onClick = { viewModel.createCustomTest(onSuccess) }, modifier = Modifier.fillMaxWidth()) { Text("Сохранить") }
+            Button(
+                onClick = { viewModel.createCustomTest(onSuccess) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+            ) { Text("Сохранить") }
         }
     }
 }
 
 @Composable
 private fun <T> StateFlow<T>.collectAsStateWithLifecycleCompat(): State<T> = this.collectAsState(initial = value)
+
+private fun Throwable.toUiMessage(defaultMessage: String = "Ошибка"): String {
+    val httpException = this as? HttpException ?: return message ?: defaultMessage
+    val payload = httpException.response()?.errorBody()?.string().orEmpty()
+    val parsedMessage = runCatching {
+        val json = JSONObject(payload)
+        when {
+            json.optString("message").isNotBlank() -> json.optString("message")
+            json.optString("error").isNotBlank() -> json.optString("error")
+            else -> null
+        }
+    }.getOrNull()
+    return parsedMessage ?: "HTTP ${httpException.code()}"
+}

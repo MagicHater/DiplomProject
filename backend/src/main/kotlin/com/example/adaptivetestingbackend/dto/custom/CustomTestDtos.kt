@@ -1,5 +1,7 @@
 package com.example.adaptivetestingbackend.dto.custom
 
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotEmpty
@@ -25,7 +27,8 @@ data class CreateCustomTestQuestionRequest(
     val options: List<CreateCustomTestOptionRequest>,
 )
 
-data class CreateCustomTestOptionRequest(
+data class CreateCustomTestOptionRequest @JsonCreator(mode = JsonCreator.Mode.PROPERTIES) constructor(
+    @param:JsonProperty("text")
     @field:NotBlank
     val text: String,
 )
