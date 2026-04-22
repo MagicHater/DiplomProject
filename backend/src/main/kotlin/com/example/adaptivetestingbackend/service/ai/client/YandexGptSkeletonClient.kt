@@ -28,19 +28,18 @@ class YandexGptSkeletonClient(
     override fun generateText(request: AiGenerateTextRequest): AiGenerateTextResponse {
         ensureAuthenticationConfigured()
 
-        val endpoint = properties.baseUrl.trimEnd('/') + "/foundationModels/v1/completion"
+        val endpoint = properties.baseUrl.trim().trimEnd('/') + "/foundationModels/v1/completion"
 
         val body = mapOf(
             "modelUri" to resolveModelUri(),
             "completionOptions" to mapOf(
                 "stream" to false,
-                "temperature" to 0.3
+                "temperature" to 0.3,
             ),
             "messages" to listOf(
                 mapOf("role" to "system", "text" to "Return only valid JSON"),
-                mapOf("role" to "user", "text" to request.prompt)
+                mapOf("role" to "user", "text" to request.prompt),
             ),
-            "jsonObject" to true
         )
 
         val requestJson = objectMapper.writeValueAsString(body)
@@ -50,6 +49,11 @@ class YandexGptSkeletonClient(
             .timeout(Duration.ofMillis(properties.timeoutMs))
             .header("Content-Type", "application/json")
             .header("Authorization", buildAuthHeader())
+            .apply {
+                if (properties.disableLogging) {
+                    header("x-data-logging-enabled", "false")
+                }
+            }
             .POST(HttpRequest.BodyPublishers.ofString(requestJson))
             .build()
 
@@ -70,15 +74,15 @@ class YandexGptSkeletonClient(
                 ?.asText()
                 ?: "{}"
 
-            AiGenerateTextResponse(
+            return AiGenerateTextResponse(
                 content = content,
                 provider = providerMode(),
                 modelUri = resolveModelUri(),
-                requestId = "yandex-${UUID.randomUUID()}",
+                requestId = response.headers().firstValue("x-request-id").orElse("yandex-${UUID.randomUUID()}"),
                 stub = false,
             )
         } catch (ex: Exception) {
-            logger.warn("YandexGPT call failed", ex)
+            logger.warn("YandexGPT call failed operation={} endpoint={} modelUri={}", request.operation, endpoint, resolveModelUri(), ex)
             throw AiProviderUnavailableException("YandexGPT request failed", ex)
         }
     }
@@ -86,22 +90,37 @@ class YandexGptSkeletonClient(
     override fun providerMode(): String = "yandex"
 
     private fun resolveModelUri(): String {
-        return if (properties.modelUri.contains("<folder-id>")) {
-            val folder = properties.folderId ?: throw AiClientNotConfiguredException("folderId is not configured")
+        val configured = properties.modelUri.trim()
+        return if (configured.contains("<folder-id>")) {
+            val folder = normalizedFolderId()
             "gpt://$folder/yandexgpt-lite/latest"
-        } else properties.modelUri
+        } else {
+            configured
+        }
+    }
+
+    private fun normalizedFolderId(): String {
+        val folder = properties.folderId?.trim().orEmpty()
+        if (folder.isBlank()) {
+            throw AiClientNotConfiguredException("folderId is not configured")
+        }
+        return folder
     }
 
     private fun buildAuthHeader(): String {
+        val apiKey = properties.apiKey?.trim().orEmpty()
+        val iamToken = properties.iamToken?.trim().orEmpty()
         return when {
-            !properties.apiKey.isNullOrBlank() -> "Api-Key ${properties.apiKey}"
-            !properties.iamToken.isNullOrBlank() -> "Bearer ${properties.iamToken}"
+            apiKey.isNotBlank() -> "Api-Key $apiKey"
+            iamToken.isNotBlank() -> "Bearer $iamToken"
             else -> throw AiClientNotConfiguredException("No auth configured")
         }
     }
 
     private fun ensureAuthenticationConfigured() {
-        if (properties.apiKey.isNullOrBlank() && properties.iamToken.isNullOrBlank()) {
+        val apiKey = properties.apiKey?.trim().orEmpty()
+        val iamToken = properties.iamToken?.trim().orEmpty()
+        if (apiKey.isBlank() && iamToken.isBlank()) {
             throw AiClientNotConfiguredException("AI provider is enabled, but no credentials provided")
         }
     }
