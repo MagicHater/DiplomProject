@@ -111,8 +111,14 @@ class TestSessionRepositoryImpl @Inject constructor(
             sessionManager.clearGuestSessionKey()
         }
 
-    override suspend fun createControllerToken(categoryId: String): ControllerTokenItem =
-        appApi.createControllerToken(ControllerTokenRequestDto(categoryId)).toDomain()
+    override suspend fun createControllerToken(categoryId: String): ControllerTokenItem {
+        val token = sessionManager.getToken()
+        android.util.Log.d("AUTH_DEBUG", "JWT = $token")
+
+        return appApi.createControllerToken(
+            ControllerTokenRequestDto(categoryId)
+        ).toDomain()
+    }
 
     override suspend fun createControllerTest(draft: ControllerTestDraft): TestCategory =
         appApi.createControllerTest(draft.toDto()).toDomain()
