@@ -47,11 +47,11 @@ adaptive-testing:
 
 ai:
   yandex:
-    enabled: ${AI_YANDEX_ENABLED:false}
+    enabled: true
     base-url: ${AI_YANDEX_BASE_URL:https://llm.api.cloud.yandex.net}
-    api-key: ${AI_YANDEX_API_KEY:}
+    api-key: AQVN2IEFayQCmXk3X_LmuQ1RnpqzH-GojAbQDf-M
     iam-token: ${AI_YANDEX_IAM_TOKEN:}
-    folder-id: ${AI_YANDEX_FOLDER_ID:}
-    model-uri: ${AI_YANDEX_MODEL_URI:gpt://<folder-id>/yandexgpt-lite/latest}
+    folder-id: b1gt1m379nqn3gbe1blj
+    model-uri: gpt://b1gt1m379nqn3gbe1blj/yandexgpt-lite/latest
     disable-logging: ${AI_YANDEX_DISABLE_LOGGING:true}
-    timeout-ms: ${AI_YANDEX_TIMEOUT_MS:5000}
+    timeout-ms: 10000
