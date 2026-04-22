@@ -184,4 +184,3 @@ enum class CandidateMetric(val title: String) {
     Adaptability("Гибкость"),
     DecisionSpeedAccuracy("Скорость принятия решений"),
 }
-s
