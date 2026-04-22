@@ -51,7 +51,7 @@ ai:
     base-url: ${AI_YANDEX_BASE_URL:https://llm.api.cloud.yandex.net}
     api-key: AQVNxrgsqdmcn0yFsO0_ttN7Pwo3EaWZj9UufZ5S
     iam-token: ${AI_YANDEX_IAM_TOKEN:}
-    folder-id: b1gt1m379nqn3gbe1blj
+    folder-id: b1gt1m379nqn3gbei1bl
     model-uri: gpt://b1gt1m379nqn3gbe1blj/yandexgpt-lite/latest
     disable-logging: ${AI_YANDEX_DISABLE_LOGGING:true}
     timeout-ms: 10000
