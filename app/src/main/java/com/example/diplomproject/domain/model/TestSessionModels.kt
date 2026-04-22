@@ -178,9 +178,9 @@ data class ControllerTestDraft(
 ) : Serializable
 
 enum class CandidateMetric(val title: String) {
-    StressResistance("Stress Resistance"),
-    Attention("Attention"),
-    Responsibility("Responsibility"),
-    Adaptability("Adaptability"),
-    DecisionSpeedAccuracy("Decision Speed Accuracy"),
+    StressResistance("Стрессоустойчивость"),
+    Attention("Внимание"),
+    Responsibility("Ответственность"),
+    Adaptability("Гибкость"),
+    DecisionSpeedAccuracy("Скорость принятия решений"),
 }
