@@ -47,7 +47,7 @@ class SecurityConfig(
                     // ВАЖНО: новый путь token-management
                     .requestMatchers("/token-management/**").hasRole("CONTROLLER")
 
-                    .requestMatchers("/controller/**").hasRole("CONTROLLER")
+                    .requestMatchers("/controller/**", "/api/controller/**").hasRole("CONTROLLER")
                     .requestMatchers("/custom-tests/available", "/custom-tests/*/submissions").authenticated()
                     .requestMatchers("/custom-tests/**").hasRole("CONTROLLER")
                     .requestMatchers("/test-sessions/**").permitAll()
