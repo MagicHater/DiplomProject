@@ -4,65 +4,105 @@ import com.example.adaptivetestingbackend.ai.client.AiGenerateTextRequest
 import com.example.adaptivetestingbackend.ai.client.AiGenerateTextResponse
 import com.example.adaptivetestingbackend.ai.client.AiTextGenerationClient
 import com.example.adaptivetestingbackend.ai.exception.AiClientNotConfiguredException
+import com.example.adaptivetestingbackend.ai.exception.AiProviderUnavailableException
 import com.example.adaptivetestingbackend.config.AiYandexProperties
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.time.Duration
 import java.util.UUID
 
 class YandexGptSkeletonClient(
     private val properties: AiYandexProperties,
+    private val objectMapper: ObjectMapper,
 ) : AiTextGenerationClient {
 
     private val logger = LoggerFactory.getLogger(javaClass)
+    private val httpClient = HttpClient.newBuilder()
+        .connectTimeout(Duration.ofMillis(properties.timeoutMs))
+        .build()
 
     override fun generateText(request: AiGenerateTextRequest): AiGenerateTextResponse {
         ensureAuthenticationConfigured()
 
-        val headers = buildPlannedHeaders()
-        // TODO: Replace with real HTTP call to YandexGPT Completion API.
-        // TODO: Use `headers` when wiring RestClient/WebClient implementation.
-        logger.info(
-            "AI operation={} correlationId={} providerMode={} endpoint={} timeoutMs={} result=skeleton-response",
-            request.operation,
-            request.correlationId,
-            providerMode(),
-            properties.baseUrl,
-            properties.timeoutMs,
-        )
-        logger.debug("AI provider={} plannedHeaders={}", providerMode(), headers.keys)
+        val endpoint = properties.baseUrl.trimEnd('/') + "/foundationModels/v1/completion"
 
-        return AiGenerateTextResponse(
-            content = "{\"message\":\"Yandex skeleton client is enabled, but real HTTP integration is not implemented yet.\"}",
-            provider = providerMode(),
-            modelUri = properties.modelUri,
-            requestId = "yandex-skeleton-${UUID.randomUUID()}",
-            stub = true,
+        val body = mapOf(
+            "modelUri" to resolveModelUri(),
+            "completionOptions" to mapOf(
+                "stream" to false,
+                "temperature" to 0.3
+            ),
+            "messages" to listOf(
+                mapOf("role" to "system", "text" to "Return only valid JSON"),
+                mapOf("role" to "user", "text" to request.prompt)
+            ),
+            "jsonObject" to true
         )
+
+        val requestJson = objectMapper.writeValueAsString(body)
+
+        val httpRequest = HttpRequest.newBuilder()
+            .uri(URI.create(endpoint))
+            .timeout(Duration.ofMillis(properties.timeoutMs))
+            .header("Content-Type", "application/json")
+            .header("Authorization", buildAuthHeader())
+            .POST(HttpRequest.BodyPublishers.ofString(requestJson))
+            .build()
+
+        return try {
+            val response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString())
+
+            if (response.statusCode() !in 200..299) {
+                throw AiProviderUnavailableException("YandexGPT returned status ${response.statusCode()}: ${response.body()}")
+            }
+
+            val json = objectMapper.readTree(response.body())
+            val content = json
+                .path("result")
+                .path("alternatives")
+                .firstOrNull()
+                ?.path("message")
+                ?.path("text")
+                ?.asText()
+                ?: "{}"
+
+            AiGenerateTextResponse(
+                content = content,
+                provider = providerMode(),
+                modelUri = resolveModelUri(),
+                requestId = "yandex-${UUID.randomUUID()}",
+                stub = false,
+            )
+        } catch (ex: Exception) {
+            logger.warn("YandexGPT call failed", ex)
+            throw AiProviderUnavailableException("YandexGPT request failed", ex)
+        }
     }
 
-    override fun providerMode(): String = "yandex-skeleton"
+    override fun providerMode(): String = "yandex"
 
-    private fun buildPlannedHeaders(): Map<String, String> {
-        val authHeader = when {
-            !properties.apiKey.isNullOrBlank() -> "Api-Key ***"
-            !properties.iamToken.isNullOrBlank() -> "Bearer ***"
-            else -> ""
-        }
+    private fun resolveModelUri(): String {
+        return if (properties.modelUri.contains("<folder-id>")) {
+            val folder = properties.folderId ?: throw AiClientNotConfiguredException("folderId is not configured")
+            "gpt://$folder/yandexgpt-lite/latest"
+        } else properties.modelUri
+    }
 
-        val headers = mutableMapOf("Authorization" to authHeader)
-        if (properties.disableLogging) {
-            headers["x-data-logging-enabled"] = "false"
+    private fun buildAuthHeader(): String {
+        return when {
+            !properties.apiKey.isNullOrBlank() -> "Api-Key ${properties.apiKey}"
+            !properties.iamToken.isNullOrBlank() -> "Bearer ${properties.iamToken}"
+            else -> throw AiClientNotConfiguredException("No auth configured")
         }
-        properties.folderId?.takeIf { it.isNotBlank() }?.let { headers["x-folder-id"] = it }
-        return headers
     }
 
     private fun ensureAuthenticationConfigured() {
-        val hasApiKey = !properties.apiKey.isNullOrBlank()
-        val hasIamToken = !properties.iamToken.isNullOrBlank()
-        if (!hasApiKey && !hasIamToken) {
-            throw AiClientNotConfiguredException(
-                "AI provider is enabled, but neither apiKey nor iamToken is configured",
-            )
+        if (properties.apiKey.isNullOrBlank() && properties.iamToken.isNullOrBlank()) {
+            throw AiClientNotConfiguredException("AI provider is enabled, but no credentials provided")
         }
     }
 }
