@@ -35,7 +35,7 @@ class AiCustomTestDraftService(
                     correlationId = correlationId,
                 ),
             )
-            val payload = objectMapper.readTree(aiResponse.content)
+            val payload = objectMapper.readTree(cleanJson(aiResponse.content))
 
             val response = GenerateCustomTestDraftResponse(
                 title = payload.path("title").asText("Demo generated test"),
@@ -88,4 +88,12 @@ class AiCustomTestDraftService(
             )
         }
     }
+}
+private fun cleanJson(raw: String): String {
+    return raw
+        .trim()
+        .removePrefix("```json")
+        .removePrefix("```")
+        .removeSuffix("```")
+        .trim()
 }

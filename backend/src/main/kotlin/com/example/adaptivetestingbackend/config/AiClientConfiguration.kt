@@ -16,7 +16,20 @@ class AiClientConfiguration {
     fun yandexGptClient(
         properties: AiYandexProperties,
         objectMapper: ObjectMapper,
-    ): AiTextGenerationClient = YandexGptSkeletonClient(properties, objectMapper)
+    ): AiTextGenerationClient {
+        val hasAuth = !properties.apiKey.isNullOrBlank() || !properties.iamToken.isNullOrBlank()
+        val hasFolder = !properties.folderId.isNullOrBlank() || !properties.modelUri.contains("<folder-id>")
+
+        require(hasAuth) {
+            "AI_YANDEX_ENABLED=true, but AI_YANDEX_API_KEY or AI_YANDEX_IAM_TOKEN is not set"
+        }
+
+        require(hasFolder) {
+            "AI_YANDEX_ENABLED=true, but AI_YANDEX_FOLDER_ID or full AI_YANDEX_MODEL_URI is not set"
+        }
+
+        return YandexGptSkeletonClient(properties, objectMapper)
+    }
 
     @Bean
     @ConditionalOnProperty(prefix = "ai.yandex", name = ["enabled"], havingValue = "false", matchIfMissing = true)

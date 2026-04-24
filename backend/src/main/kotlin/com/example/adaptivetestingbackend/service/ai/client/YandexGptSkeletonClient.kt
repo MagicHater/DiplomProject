@@ -29,16 +29,40 @@ class YandexGptSkeletonClient(
         ensureAuthenticationConfigured()
 
         val endpoint = properties.baseUrl.trim().trimEnd('/') + "/foundationModels/v1/completion"
+        val modelUri = resolveModelUri()
 
         val body = mapOf(
-            "modelUri" to resolveModelUri(),
+            "modelUri" to modelUri,
             "completionOptions" to mapOf(
                 "stream" to false,
                 "temperature" to 0.3,
+                "maxTokens" to "2000",
             ),
             "messages" to listOf(
-                mapOf("role" to "system", "text" to "Return only valid JSON"),
-                mapOf("role" to "user", "text" to request.prompt),
+                mapOf(
+                    "role" to "system",
+                    "text" to "Верни только валидный JSON без markdown, без пояснений и без блока ```."
+                ),
+                mapOf(
+                    "role" to "system",
+                    "text" to """
+        Ты должен вернуть только валидный JSON.
+        Без markdown.
+        Без пояснений.
+        Без блока ```json.
+        Формат:
+        {
+          "title": "Название теста",
+          "description": "Описание теста",
+          "questions": [
+            {
+              "text": "Текст вопроса",
+              "options": ["Вариант 1", "Вариант 2"]
+            }
+          ]
+        }
+    """.trimIndent()
+                ),
             ),
         )
 
@@ -77,12 +101,12 @@ class YandexGptSkeletonClient(
             return AiGenerateTextResponse(
                 content = content,
                 provider = providerMode(),
-                modelUri = resolveModelUri(),
+                modelUri = modelUri,
                 requestId = response.headers().firstValue("x-request-id").orElse("yandex-${UUID.randomUUID()}"),
                 stub = false,
             )
         } catch (ex: Exception) {
-            logger.warn("YandexGPT call failed operation={} endpoint={} modelUri={}", request.operation, endpoint, resolveModelUri(), ex)
+            logger.warn("YandexGPT call failed operation={} endpoint={} modelUri={}", request.operation, endpoint, modelUri, ex)
             throw AiProviderUnavailableException("YandexGPT request failed", ex)
         }
     }
