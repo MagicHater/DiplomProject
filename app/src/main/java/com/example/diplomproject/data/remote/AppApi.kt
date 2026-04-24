@@ -11,6 +11,9 @@ interface AppApi {
     @GET("health")
     suspend fun getHealth(): HealthResponse
 
+    @GET("controller/dashboard")
+    suspend fun getControllerDashboard(): ControllerDashboardResponseDto
+
     @GET("test-categories")
     suspend fun getTestCategories(): List<TestCategoryDto>
 
@@ -34,7 +37,6 @@ interface AppApi {
         @Body request: ControllerTokenRequestDto
     ): ControllerTokenResponseDto
 
-
     @POST("token-management/tests")
     suspend fun createControllerTest(
         @Body request: CreateControllerTestRequestDto
@@ -48,7 +50,6 @@ interface AppApi {
 
     @GET("token-management/results/{sessionId}")
     suspend fun getControllerTokenResult(@Path("sessionId") sessionId: String): FinishSessionResponseDto
-
 
     @GET("custom-tests/available")
     suspend fun getAvailableCustomTests(): List<CustomTestListItemDto>
