@@ -21,6 +21,7 @@ class YandexGptSkeletonClient(
 ) : AiTextGenerationClient {
 
     private val logger = LoggerFactory.getLogger(javaClass)
+
     private val httpClient = HttpClient.newBuilder()
         .connectTimeout(Duration.ofMillis(properties.timeoutMs))
         .build()
@@ -35,33 +36,47 @@ class YandexGptSkeletonClient(
             "modelUri" to modelUri,
             "completionOptions" to mapOf(
                 "stream" to false,
-                "temperature" to 0.3,
-                "maxTokens" to "2000",
+                "temperature" to 0.4,
+                "maxTokens" to "2500",
             ),
             "messages" to listOf(
                 mapOf(
                     "role" to "system",
-                    "text" to "Верни только валидный JSON без markdown, без пояснений и без блока ```."
+                    "text" to """
+                        Ты — модуль генерации пользовательских психологических и поведенческих тестов.
+
+                        Твоя задача — вернуть только валидный JSON.
+                        Нельзя возвращать markdown, пояснения, комментарии, текст до JSON или текст после JSON.
+                        Нельзя использовать блоки ```json или ```.
+                        Нельзя использовать шаблонные значения:
+                        "Название теста", "Описание теста", "Текст вопроса", "Вариант 1", "Вариант 2", "string".
+
+                        Формат ответа:
+                        {
+                          "title": строка,
+                          "description": строка,
+                          "questions": [
+                            {
+                              "text": строка,
+                              "options": [строка, строка, строка]
+                            }
+                          ]
+                        }
+
+                        Требования:
+                        - title должен быть конкретным названием теста;
+                        - description должен кратко объяснять, что оценивает тест;
+                        - questions должен содержать реальные ситуационные вопросы;
+                        - каждый вопрос должен описывать конкретную рабочую или поведенческую ситуацию;
+                        - options должны быть осмысленными вариантами поведения кандидата;
+                        - каждый вопрос должен иметь 3 или 4 варианта ответа;
+                        - если пользователь просит русский язык, весь контент должен быть на русском языке;
+                        - JSON должен начинаться с символа { и заканчиваться символом }.
+                    """.trimIndent(),
                 ),
                 mapOf(
-                    "role" to "system",
-                    "text" to """
-        Ты должен вернуть только валидный JSON.
-        Без markdown.
-        Без пояснений.
-        Без блока ```json.
-        Формат:
-        {
-          "title": "Название теста",
-          "description": "Описание теста",
-          "questions": [
-            {
-              "text": "Текст вопроса",
-              "options": ["Вариант 1", "Вариант 2"]
-            }
-          ]
-        }
-    """.trimIndent()
+                    "role" to "user",
+                    "text" to request.prompt,
                 ),
             ),
         )
@@ -85,7 +100,9 @@ class YandexGptSkeletonClient(
             val response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString())
 
             if (response.statusCode() !in 200..299) {
-                throw AiProviderUnavailableException("YandexGPT returned status ${response.statusCode()}: ${response.body()}")
+                throw AiProviderUnavailableException(
+                    "YandexGPT returned status ${response.statusCode()}: ${response.body()}",
+                )
             }
 
             val json = objectMapper.readTree(response.body())
@@ -96,17 +113,27 @@ class YandexGptSkeletonClient(
                 ?.path("message")
                 ?.path("text")
                 ?.asText()
+                ?.trim()
                 ?: "{}"
 
-            return AiGenerateTextResponse(
+            AiGenerateTextResponse(
                 content = content,
                 provider = providerMode(),
                 modelUri = modelUri,
-                requestId = response.headers().firstValue("x-request-id").orElse("yandex-${UUID.randomUUID()}"),
+                requestId = response.headers().firstValue("x-request-id")
+                    .orElse("yandex-${UUID.randomUUID()}"),
                 stub = false,
             )
+        } catch (ex: AiProviderUnavailableException) {
+            throw ex
         } catch (ex: Exception) {
-            logger.warn("YandexGPT call failed operation={} endpoint={} modelUri={}", request.operation, endpoint, modelUri, ex)
+            logger.warn(
+                "YandexGPT call failed operation={} endpoint={} modelUri={}",
+                request.operation,
+                endpoint,
+                modelUri,
+                ex,
+            )
             throw AiProviderUnavailableException("YandexGPT request failed", ex)
         }
     }
@@ -115,6 +142,7 @@ class YandexGptSkeletonClient(
 
     private fun resolveModelUri(): String {
         val configured = properties.modelUri.trim()
+
         return if (configured.contains("<folder-id>")) {
             val folder = normalizedFolderId()
             "gpt://$folder/yandexgpt-lite/latest"
@@ -125,15 +153,18 @@ class YandexGptSkeletonClient(
 
     private fun normalizedFolderId(): String {
         val folder = properties.folderId?.trim().orEmpty()
+
         if (folder.isBlank()) {
             throw AiClientNotConfiguredException("folderId is not configured")
         }
+
         return folder
     }
 
     private fun buildAuthHeader(): String {
         val apiKey = properties.apiKey?.trim().orEmpty()
         val iamToken = properties.iamToken?.trim().orEmpty()
+
         return when {
             apiKey.isNotBlank() -> "Api-Key $apiKey"
             iamToken.isNotBlank() -> "Bearer $iamToken"
@@ -144,6 +175,7 @@ class YandexGptSkeletonClient(
     private fun ensureAuthenticationConfigured() {
         val apiKey = properties.apiKey?.trim().orEmpty()
         val iamToken = properties.iamToken?.trim().orEmpty()
+
         if (apiKey.isBlank() && iamToken.isBlank()) {
             throw AiClientNotConfiguredException("AI provider is enabled, but no credentials provided")
         }
