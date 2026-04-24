@@ -15,11 +15,11 @@ class JwtAuthenticationFilter(
     private val userDetailsService: AppUserDetailsService,
 ) : OncePerRequestFilter() {
 
+    // После: не отключаем фильтр для token-management, либо обрабатываем только нежелательные пути
     override fun shouldNotFilter(request: HttpServletRequest): Boolean {
-        val path = request.servletPath ?: return false
-
-        return path.startsWith("/token-management/")
+        return false
     }
+
 
     override fun doFilterInternal(
         request: HttpServletRequest,
