@@ -1,5 +1,6 @@
 package com.example.adaptivetestingbackend.controller.controller
 
+import com.example.adaptivetestingbackend.dto.controller.ControllerDashboardResponse
 import com.example.adaptivetestingbackend.dto.controller.ControllerParticipantListItemResponse
 import com.example.adaptivetestingbackend.dto.controller.ControllerParticipantResultsResponse
 import com.example.adaptivetestingbackend.dto.testsession.ResultProfileResponse
@@ -18,6 +19,13 @@ import java.util.UUID
 class ControllerResultsController(
     private val controllerResultsService: ControllerResultsService,
 ) {
+    @GetMapping("/dashboard")
+    fun getDashboard(
+        @AuthenticationPrincipal userDetails: UserDetails,
+    ): ControllerDashboardResponse {
+        return controllerResultsService.getDashboard(userDetails.username)
+    }
+
     @GetMapping("/candidates")
     fun getCandidates(
         @AuthenticationPrincipal userDetails: UserDetails,
@@ -53,10 +61,4 @@ class ControllerResultsController(
     ): ResultProfileResponse {
         return controllerResultsService.getResultDetails(sessionId, userDetails.username)
     }
-}
-@GetMapping("/dashboard")
-fun getDashboard(
-    @AuthenticationPrincipal userDetails: UserDetails,
-): ControllerDashboardResponse {
-    return controllerResultsService.getDashboard(userDetails.username)
 }
