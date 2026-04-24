@@ -33,6 +33,9 @@ class AnswerEntity(
     @Column(name = "answer_value", precision = 6, scale = 2)
     val answerValue: BigDecimal? = null,
 
+    @Column(name = "response_time_ms")
+    val responseTimeMs: Long? = null,
+
     @Column(name = "answered_at", nullable = false)
     val answeredAt: OffsetDateTime = OffsetDateTime.now(),
 )
