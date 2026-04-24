@@ -5,15 +5,14 @@ sealed class AppDestination(val route: String) {
     data object Register : AppDestination("register")
     data object CandidateHome : AppDestination("candidate_home")
     data object ControllerHome : AppDestination("controller_home")
+    data object ControllerDashboard : AppDestination("controller_dashboard")
     data object Test : AppDestination("test/{sessionId}") {
         const val sessionIdArg = "sessionId"
-
         fun createRoute(sessionId: String): String = "test/$sessionId"
     }
 
     data object Result : AppDestination("result/{sessionId}") {
         const val sessionIdArg = "sessionId"
-
         fun createRoute(sessionId: String): String = "result/$sessionId"
     }
 
@@ -46,7 +45,6 @@ sealed class AppDestination(val route: String) {
     data object CandidateDetails : AppDestination("candidate_details/{participantType}/{participantKey}") {
         const val participantTypeArg = "participantType"
         const val participantKeyArg = "participantKey"
-
         fun createRoute(participantType: String, participantKey: String): String =
             "candidate_details/$participantType/$participantKey"
     }
