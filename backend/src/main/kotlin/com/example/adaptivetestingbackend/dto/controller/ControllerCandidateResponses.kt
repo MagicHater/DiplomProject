@@ -36,3 +36,43 @@ data class ControllerParticipantStatisticsSessionResponse(
     val adaptability: Double,
     val decisionSpeedAccuracy: Double,
 )
+
+data class ControllerDashboardResponse(
+    val totalCompletedSessions: Int,
+    val totalParticipants: Int,
+    val averages: ControllerDashboardAveragesResponse,
+    val distribution: ControllerDashboardDistributionResponse,
+    val weakMetrics: List<ControllerDashboardWeakMetricResponse>,
+    val topCandidates: List<ControllerDashboardCandidateRankResponse>,
+)
+
+data class ControllerDashboardAveragesResponse(
+    val attention: Double,
+    val stressResistance: Double,
+    val responsibility: Double,
+    val adaptability: Double,
+    val decisionSpeedAccuracy: Double,
+    val overall: Double,
+)
+
+data class ControllerDashboardDistributionResponse(
+    val low: Int,
+    val medium: Int,
+    val high: Int,
+)
+
+data class ControllerDashboardWeakMetricResponse(
+    val metricCode: String,
+    val title: String,
+    val average: Double,
+)
+
+data class ControllerDashboardCandidateRankResponse(
+    val participantId: String,
+    val participantType: String,
+    val displayName: String,
+    val email: String? = null,
+    val sessionsCount: Int,
+    val averageScore: Double,
+    val lastCompletedAt: OffsetDateTime?,
+)
