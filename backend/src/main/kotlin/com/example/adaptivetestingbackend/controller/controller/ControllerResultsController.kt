@@ -54,3 +54,9 @@ class ControllerResultsController(
         return controllerResultsService.getResultDetails(sessionId, userDetails.username)
     }
 }
+@GetMapping("/dashboard")
+fun getDashboard(
+    @AuthenticationPrincipal userDetails: UserDetails,
+): ControllerDashboardResponse {
+    return controllerResultsService.getDashboard(userDetails.username)
+}
