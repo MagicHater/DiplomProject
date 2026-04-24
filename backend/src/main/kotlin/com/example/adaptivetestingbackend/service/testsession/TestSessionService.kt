@@ -151,9 +151,11 @@ class TestSessionService(
         val optionSnapshots = sourceOptions.mapIndexed { index, option ->
             SessionQuestionOptionDto(
                 optionId = option.id,
-                order = option.optionOrder,
+                order = index + 1,
                 text = generatedQuestion.options.getOrNull(index) ?: option.optionText,
             )
+        }.shuffled().mapIndexed { index, option ->
+            option.copy(order = index + 1)
         }
 
         val snapshot = questionSnapshotRepository.save(
