@@ -361,75 +361,79 @@ fun TestQuestionScreen(
     onRetryClick: () -> Unit,
 ) {
     AppScreenScaffold(title = "Тестирование") { innerPadding ->
+        val scrollState = rememberScrollState()
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            val question = uiState.question
 
-            if (question != null) {
-                val progress = if (uiState.progress.totalAvailableQuestions > 0) {
-                    (uiState.progress.answeredQuestions.toFloat() / uiState.progress.totalAvailableQuestions.toFloat())
-                        .coerceIn(0f, 1f)
-                } else {
-                    0f
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+
+                val question = uiState.question
+
+                if (question != null) {
+                    val progress = if (uiState.progress.totalAvailableQuestions > 0) {
+                        (uiState.progress.answeredQuestions.toFloat() /
+                                uiState.progress.totalAvailableQuestions.toFloat())
+                            .coerceIn(0f, 1f)
+                    } else 0f
+
+                    Text(
+                        text = formatQuestionCounterText(
+                            questionOrder = question.order,
+                            totalAvailableQuestions = uiState.progress.totalAvailableQuestions,
+                        ),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+
+                    LinearProgressIndicator(progress = { progress })
+
+                    Text(
+                        text = "Отвечено: ${uiState.progress.answeredQuestions}",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                 }
 
-                Text(
-                    text = formatQuestionCounterText(
-                        questionOrder = question.order,
-                        totalAvailableQuestions = uiState.progress.totalAvailableQuestions,
-                    ),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
-                Text(
-                    text = "Отвечено: ${uiState.progress.answeredQuestions}",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
+                if (uiState.isInitialLoading) {
+                    LoadingState("Загружаем вопрос...")
+                }
 
-            if (uiState.isInitialLoading) {
-                LoadingState(message = "Загружаем вопрос...")
-            }
+                uiState.errorMessage?.let {
+                    ErrorState(it, "Повторить", onRetryClick)
+                }
 
-            uiState.errorMessage?.let { error ->
-                ErrorState(
-                    message = error,
-                    actionLabel = if (question == null) "Повторить загрузку" else "Повторить",
-                    onActionClick = onRetryClick,
-                )
-            }
+                if (question != null) {
+                    Text(
+                        text = question.text,
+                        style = MaterialTheme.typography.titleLarge
+                    )
 
-            if (question != null) {
-                Text(text = question.text, style = MaterialTheme.typography.titleLarge)
-
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    question.options.sortedBy { it.order }.forEach { option ->
-                        SelectableOptionCard(
-                            text = option.text,
-                            selected = option.optionId == uiState.selectedOptionId,
-                            enabled = !uiState.isBusy,
-                            onClick = { onOptionSelected(option.optionId) },
-                        )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        question.options.forEach { option ->
+                            SelectableOptionCard(
+                                text = option.text,
+                                selected = option.optionId == uiState.selectedOptionId,
+                                enabled = !uiState.isBusy,
+                                onClick = { onOptionSelected(option.optionId) },
+                            )
+                        }
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.weight(1f))
 
             Button(
                 onClick = onNextClick,
                 enabled = uiState.selectedOptionId != null && !uiState.isBusy,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                if (uiState.isSubmitting || uiState.isFinishing) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
                 Text("Ответить и продолжить")
             }
         }
