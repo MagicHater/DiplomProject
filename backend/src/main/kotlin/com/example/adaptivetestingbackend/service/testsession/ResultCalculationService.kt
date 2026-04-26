@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.math.RoundingMode
+import kotlin.math.sqrt
 
 @Service
 class ResultCalculationService(
@@ -22,6 +23,7 @@ class ResultCalculationService(
         val rawScores = scales.associateWith { BigDecimal.ZERO }.toMutableMap()
         val minScores = scales.associateWith { BigDecimal.ZERO }.toMutableMap()
         val maxScores = scales.associateWith { BigDecimal.ZERO }.toMutableMap()
+        val scaleContributions = scales.associateWith { mutableListOf<BigDecimal>() }.toMutableMap()
 
         answers.forEach { answer ->
             val answerValue = answer.answerValue ?: BigDecimal.ZERO
@@ -32,6 +34,10 @@ class ResultCalculationService(
                 rawScores[scale] = rawScores.getValue(scale).add(answerValue.multiply(weight))
                 minScores[scale] = minScores.getValue(scale).add(MIN_ANSWER_VALUE.multiply(weight))
                 maxScores[scale] = maxScores.getValue(scale).add(MAX_ANSWER_VALUE.multiply(weight))
+
+                if (weight.abs() > BigDecimal.ZERO) {
+                    scaleContributions.getValue(scale).add(answerValue.multiply(weight).setScale(4, RoundingMode.HALF_UP))
+                }
             }
         }
 
@@ -48,6 +54,8 @@ class ResultCalculationService(
             )
         }
 
+        val explanations = buildScaleExplanations(normalizedScores, scaleContributions)
+
         return CalculatedProfile(
             attention = normalizedScores.getValue("attention"),
             stressResistance = normalizedScores.getValue("stress_resistance"),
@@ -56,6 +64,7 @@ class ResultCalculationService(
             decisionSpeedAccuracy = normalizedScores.getValue("decision_speed_accuracy"),
             reliabilityFactor = reliability.factor,
             reliabilityFlags = reliability.flags,
+            scaleExplanations = explanations,
         )
     }
 
@@ -79,6 +88,44 @@ class ResultCalculationService(
         return normalized
             .coerceIn(BigDecimal.ZERO, HUNDRED)
             .setScale(2, RoundingMode.HALF_UP)
+    }
+
+    private fun buildScaleExplanations(
+        normalizedScores: Map<String, BigDecimal>,
+        scaleContributions: Map<String, List<BigDecimal>>,
+    ): Map<String, String> {
+        return scales.associateWith { scale ->
+            val contributions = scaleContributions[scale].orEmpty()
+            if (contributions.isEmpty()) {
+                "Недостаточно ответов, связанных с этой метрикой, чтобы объяснить результат."
+            } else {
+                val lowCount = contributions.count { it < BigDecimal.ZERO }
+                val highCount = contributions.count { it > BigDecimal.ZERO }
+                val neutralCount = contributions.size - lowCount - highCount
+                val variability = standardDeviation(contributions)
+                val variabilityText = when {
+                    variability >= 1.40 -> "высокая вариативность ответов"
+                    variability >= 0.75 -> "умеренная вариативность ответов"
+                    else -> "ответы достаточно последовательны"
+                }
+                val score = normalizedScores.getValue(scale)
+                val dominantReason = when {
+                    score < BigDecimal("50") -> "низкий показатель связан с тем, что в $lowCount из ${contributions.size} релевантных вопросов выбраны ответы с отрицательным вкладом"
+                    score > BigDecimal("75") -> "высокий показатель связан с тем, что в $highCount из ${contributions.size} релевантных вопросов выбраны ответы с положительным вкладом"
+                    else -> "средний показатель сформирован смешанным профилем ответов: положительных — $highCount, отрицательных — $lowCount, нейтральных — $neutralCount"
+                }
+
+                "$dominantReason; $variabilityText."
+            }
+        }
+    }
+
+    private fun standardDeviation(values: List<BigDecimal>): Double {
+        if (values.size < 2) return 0.0
+        val doubles = values.map { it.toDouble() }
+        val mean = doubles.average()
+        val variance = doubles.map { (it - mean) * (it - mean) }.average()
+        return sqrt(variance)
     }
 
     private fun analyzeReliability(answers: List<AnswerEntity>): ReliabilityAnalysis {
@@ -170,6 +217,7 @@ class ResultCalculationService(
         val decisionSpeedAccuracy: BigDecimal,
         val reliabilityFactor: BigDecimal = BigDecimal.ONE,
         val reliabilityFlags: List<String> = emptyList(),
+        val scaleExplanations: Map<String, String> = emptyMap(),
     )
 
     private data class ReliabilityAnalysis(
