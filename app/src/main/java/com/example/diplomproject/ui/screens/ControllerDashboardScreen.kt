@@ -22,13 +22,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.diplomproject.data.remote.ControllerDashboardAveragesResponseDto
 import com.example.diplomproject.data.remote.ControllerDashboardCandidateRankResponseDto
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @Composable
@@ -38,6 +43,7 @@ fun ControllerDashboardScreen(
     val vm: ControllerDashboardViewModel = hiltViewModel()
     val data by vm.state.collectAsState()
     val loading by vm.loading.collectAsState()
+    var selectedProfile by remember { mutableStateOf(JobRequirementProfile.presets.first()) }
 
     AppScreenScaffold(title = "Дашборд аналитики", onBackClick = onBack) { innerPadding ->
         when {
@@ -96,26 +102,11 @@ fun ControllerDashboardScreen(
                     }
 
                     item {
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                Text("Средние показатели", style = MaterialTheme.typography.titleMedium)
-                                DashboardMetricBar("Стрессоустойчивость", dashboard.averages.stressResistance)
-                                DashboardMetricBar("Внимание", dashboard.averages.attention)
-                                DashboardMetricBar("Ответственность", dashboard.averages.responsibility)
-                                DashboardMetricBar("Адаптивность", dashboard.averages.adaptability)
-                                DashboardMetricBar("Скорость решений", dashboard.averages.decisionSpeedAccuracy)
-                                Text(
-                                    text = "Общий средний балл: ${dashboard.averages.overall.formatScore()}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                            }
-                        }
+                        JobRequirementProfileCard(
+                            selectedProfile = selectedProfile,
+                            averages = dashboard.averages,
+                            onProfileSelected = { selectedProfile = it },
+                        )
                     }
 
                     item {
@@ -199,6 +190,122 @@ private fun DashboardStatCard(
             Text(title, style = MaterialTheme.typography.bodySmall)
             Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         }
+    }
+}
+
+@Composable
+private fun JobRequirementProfileCard(
+    selectedProfile: JobRequirementProfile,
+    averages: ControllerDashboardAveragesResponseDto,
+    onProfileSelected: (JobRequirementProfile) -> Unit,
+) {
+    val rows = selectedProfile.requirements.map { requirement ->
+        RequirementComparisonRow(
+            title = requirement.title,
+            required = requirement.required,
+            actual = averages.valueFor(requirement.metricCode),
+        )
+    }
+    val passedCount = rows.count { it.deficit >= 0 }
+    val readiness = if (rows.isEmpty()) 0 else ((passedCount.toDouble() / rows.size.toDouble()) * 100).roundToInt()
+    val weakest = rows.minByOrNull { it.deficit }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text("Профиль требований должности", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Сравнение средних результатов группы с минимальными требованиями выбранной роли.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                JobRequirementProfile.presets.forEach { profile ->
+                    val selected = profile.id == selectedProfile.id
+                    if (selected) {
+                        Button(onClick = { onProfileSelected(profile) }, modifier = Modifier.fillMaxWidth()) {
+                            Text(profile.title)
+                        }
+                    } else {
+                        OutlinedButton(onClick = { onProfileSelected(profile) }, modifier = Modifier.fillMaxWidth()) {
+                            Text(profile.title)
+                        }
+                    }
+                }
+            }
+
+            Text(
+                text = "Индекс соответствия: $readiness%",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+
+            weakest?.let {
+                Text(
+                    text = if (it.deficit < 0) {
+                        "Ключевая зона риска: ${it.title} (${it.deficit.formatSigned()})"
+                    } else {
+                        "Группа соответствует требованиям выбранной роли."
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (it.deficit < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+
+            rows.forEach { row ->
+                RequirementComparisonItem(row)
+            }
+        }
+    }
+}
+
+@Composable
+private fun RequirementComparisonItem(row: RequirementComparisonRow) {
+    val actualProgress = (row.actual / 100.0).toFloat().coerceIn(0f, 1f)
+    val requiredProgress = (row.required / 100.0).toFloat().coerceIn(0f, 1f)
+    val statusText = when {
+        row.deficit >= 3 -> "выше нормы +${row.deficit.formatScore()}"
+        row.deficit >= -2 -> "почти норма ${row.deficit.formatSigned()}"
+        else -> "дефицит ${row.deficit.formatSigned()}"
+    }
+    val statusColor = when {
+        row.deficit >= 0 -> MaterialTheme.colorScheme.primary
+        abs(row.deficit) <= 2 -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.error
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = row.title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = "≥ ${row.required.formatScore()} / ${row.actual.formatScore()}",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        LinearProgressIndicator(progress = { requiredProgress }, modifier = Modifier.fillMaxWidth())
+        LinearProgressIndicator(progress = { actualProgress }, modifier = Modifier.fillMaxWidth())
+        Text(
+            text = statusText,
+            style = MaterialTheme.typography.bodySmall,
+            color = statusColor,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 
@@ -287,4 +394,72 @@ private fun CandidateComparisonRow(index: Int, candidate: ControllerDashboardCan
     }
 }
 
+private data class JobRequirementProfile(
+    val id: String,
+    val title: String,
+    val requirements: List<JobRequirement>,
+) {
+    companion object {
+        val presets = listOf(
+            JobRequirementProfile(
+                id = "asu_operator",
+                title = "Оператор АСУ",
+                requirements = listOf(
+                    JobRequirement("stressResistance", "Стрессоустойчивость", 75.0),
+                    JobRequirement("attention", "Внимание", 80.0),
+                    JobRequirement("responsibility", "Ответственность", 70.0),
+                    JobRequirement("adaptability", "Адаптивность", 65.0),
+                    JobRequirement("decisionSpeedAccuracy", "Скорость решений", 70.0),
+                ),
+            ),
+            JobRequirementProfile(
+                id = "dispatcher",
+                title = "Диспетчер",
+                requirements = listOf(
+                    JobRequirement("stressResistance", "Стрессоустойчивость", 80.0),
+                    JobRequirement("attention", "Внимание", 85.0),
+                    JobRequirement("responsibility", "Ответственность", 75.0),
+                    JobRequirement("adaptability", "Адаптивность", 70.0),
+                    JobRequirement("decisionSpeedAccuracy", "Скорость решений", 75.0),
+                ),
+            ),
+            JobRequirementProfile(
+                id = "manager",
+                title = "Руководитель смены",
+                requirements = listOf(
+                    JobRequirement("stressResistance", "Стрессоустойчивость", 70.0),
+                    JobRequirement("attention", "Внимание", 70.0),
+                    JobRequirement("responsibility", "Ответственность", 85.0),
+                    JobRequirement("adaptability", "Адаптивность", 80.0),
+                    JobRequirement("decisionSpeedAccuracy", "Скорость решений", 70.0),
+                ),
+            ),
+        )
+    }
+}
+
+private data class JobRequirement(
+    val metricCode: String,
+    val title: String,
+    val required: Double,
+)
+
+private data class RequirementComparisonRow(
+    val title: String,
+    val required: Double,
+    val actual: Double,
+) {
+    val deficit: Double = actual - required
+}
+
+private fun ControllerDashboardAveragesResponseDto.valueFor(metricCode: String): Double = when (metricCode) {
+    "attention" -> attention
+    "stressResistance" -> stressResistance
+    "responsibility" -> responsibility
+    "adaptability" -> adaptability
+    "decisionSpeedAccuracy" -> decisionSpeedAccuracy
+    else -> 0.0
+}
+
 private fun Double.formatScore(): String = "${roundToInt()}"
+private fun Double.formatSigned(): String = if (this >= 0) "+${formatScore()}" else "-${abs(this).roundToInt()}"
