@@ -13,7 +13,7 @@ import kotlin.math.max
 /**
  * Explainable adaptive selection algorithm:
  * 1) do not repeat issued source questions;
- * 2) prioritize scales with low coverage and high uncertainty;
+ * 2) prioritize scales with low coverage, high uncertainty and weak current performance;
  * 3) adapt target difficulty using current average answer score;
  * 4) prefer questions close to target difficulty while still respecting scale priorities.
  */
@@ -117,7 +117,33 @@ class AdaptiveQuestionSelectionStrategy(
             val coverage = state.scaleCoverage[scale] ?: BigDecimal.ZERO
             val gap = targetCoveragePerScale.subtract(coverage).max(BigDecimal.ZERO)
             val uncertainty = estimateUncertainty(state, scale)
-            gap.add(uncertainty.multiply(BigDecimal("0.50"))).setScale(6, RoundingMode.HALF_UP)
+            val weakScaleBonus = estimateWeakScaleBonus(state, scale)
+
+            gap
+                .add(uncertainty.multiply(BigDecimal("0.50")))
+                .add(weakScaleBonus)
+                .setScale(6, RoundingMode.HALF_UP)
+        }
+    }
+
+    private fun estimateWeakScaleBonus(state: AdaptiveSessionState, scale: String): BigDecimal {
+        if (state.answeredQuestions < MIN_ANSWERS_BEFORE_WEAK_SCALE_ADAPTATION) {
+            return BigDecimal.ZERO
+        }
+
+        val coverage = state.scaleCoverage[scale] ?: BigDecimal.ZERO
+        if (coverage <= BigDecimal.ZERO) {
+            return BigDecimal.ZERO
+        }
+
+        val scoreSum = state.scaleScoreSums[scale] ?: BigDecimal.ZERO
+        val averageByCoverage = scoreSum.divide(coverage, 8, RoundingMode.HALF_UP)
+
+        return when {
+            averageByCoverage <= BigDecimal("-1.00") -> BigDecimal("1.20")
+            averageByCoverage <= BigDecimal("-0.50") -> BigDecimal("0.80")
+            averageByCoverage <= BigDecimal("-0.20") -> BigDecimal("0.45")
+            else -> BigDecimal.ZERO
         }
     }
 
@@ -148,5 +174,9 @@ class AdaptiveQuestionSelectionStrategy(
         } catch (_: Exception) {
             emptyMap()
         }
+    }
+
+    private companion object {
+        const val MIN_ANSWERS_BEFORE_WEAK_SCALE_ADAPTATION = 3
     }
 }
