@@ -2,6 +2,7 @@ package com.example.adaptivetestingbackend.service.testsession
 
 import com.example.adaptivetestingbackend.dto.controller.ControllerDashboardAveragesResponse
 import com.example.adaptivetestingbackend.dto.controller.ControllerDashboardCandidateRankResponse
+import com.example.adaptivetestingbackend.dto.controller.ControllerDashboardCategoryStatisticsResponse
 import com.example.adaptivetestingbackend.dto.controller.ControllerDashboardDistributionResponse
 import com.example.adaptivetestingbackend.dto.controller.ControllerDashboardResponse
 import com.example.adaptivetestingbackend.dto.controller.ControllerDashboardWeakMetricResponse
@@ -38,6 +39,12 @@ class ControllerResultsService(
         val email: String?,
         var completedSessionsCount: Long = 0,
         var lastCompletedAt: OffsetDateTime? = null,
+    )
+
+    private data class MetricAverage(
+        val code: String,
+        val title: String,
+        val value: Double,
     )
 
     @Transactional(readOnly = true)
@@ -107,6 +114,27 @@ class ControllerResultsService(
             ControllerDashboardWeakMetricResponse("decisionSpeedAccuracy", "Скорость и точность решений", avgDecision.round2()),
         ).sortedBy { it.average }.take(3)
 
+        val categoryStatistics = profiles
+            .groupBy { it.session.category }
+            .map { (category, categoryProfiles) ->
+                val metrics = categoryProfiles.metricAverages()
+                val weakest = metrics.minByOrNull { it.value }
+                ControllerDashboardCategoryStatisticsResponse(
+                    categoryId = category.id.toString(),
+                    categoryName = category.name,
+                    sessionsCount = categoryProfiles.size,
+                    averageScore = categoryProfiles.map { it.overallScore() }.average().round2(),
+                    attention = metrics.first { it.code == "attention" }.value.round2(),
+                    stressResistance = metrics.first { it.code == "stressResistance" }.value.round2(),
+                    responsibility = metrics.first { it.code == "responsibility" }.value.round2(),
+                    adaptability = metrics.first { it.code == "adaptability" }.value.round2(),
+                    decisionSpeedAccuracy = metrics.first { it.code == "decisionSpeedAccuracy" }.value.round2(),
+                    weakestMetricTitle = weakest?.title ?: "Нет данных",
+                    weakestMetricAverage = weakest?.value?.round2() ?: 0.0,
+                )
+            }
+            .sortedBy { it.averageScore }
+
         return ControllerDashboardResponse(
             totalCompletedSessions = profiles.size,
             totalParticipants = participants.size,
@@ -125,7 +153,7 @@ class ControllerResultsService(
             ),
             weakMetrics = weakMetrics,
             topCandidates = topCandidates,
-            categoryStatistics = emptyList(),
+            categoryStatistics = categoryStatistics,
         )
     }
 
@@ -308,6 +336,14 @@ class ControllerResultsService(
 
     private fun Iterable<ResultProfileEntity>.averageOf(selector: (ResultProfileEntity) -> BigDecimal): Double =
         map(selector).average()
+
+    private fun Iterable<ResultProfileEntity>.metricAverages(): List<MetricAverage> = listOf(
+        MetricAverage("attention", "Внимание", averageOf { it.attentionScore }),
+        MetricAverage("stressResistance", "Стрессоустойчивость", averageOf { it.stressResistanceScore }),
+        MetricAverage("responsibility", "Ответственность", averageOf { it.responsibilityScore }),
+        MetricAverage("adaptability", "Адаптивность", averageOf { it.adaptabilityScore }),
+        MetricAverage("decisionSpeedAccuracy", "Скорость и точность решений", averageOf { it.decisionSpeedAccuracyScore }),
+    )
 
     private fun ResultProfileEntity.overallScore(): Double = listOf(
         attentionScore,
