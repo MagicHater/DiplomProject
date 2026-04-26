@@ -41,7 +41,6 @@ class TestViewModel @Inject constructor(
                 question = question,
                 errorMessage = null,
                 isInitialLoading = false,
-                // The first question is already issued by start-session, so progress must start from 1 issued.
                 progress = it.progress.copy(issuedQuestions = maxOf(it.progress.issuedQuestions, question.order)),
             )
         }
@@ -116,13 +115,7 @@ class TestViewModel @Inject constructor(
         }
     }
 
-    fun consumeResultNavigation() {
-        _uiState.update { it.copy(navigateToResult = false) }
-    }
-
-    private fun loadQuestionIfNeeded() {
-        if (_uiState.value.question != null || _uiState.value.isInitialLoading) return
-
+    fun retryLoad() {
         viewModelScope.launch {
             _uiState.update { it.copy(isInitialLoading = true, errorMessage = null) }
             runCatching { getNextCandidateQuestionUseCase(sessionId) }
@@ -135,8 +128,6 @@ class TestViewModel @Inject constructor(
                                 selectedOptionId = null,
                             )
                         }
-                    } else {
-                        finishSessionAfterUnexpectedEnd()
                     }
                 }
                 .onFailure { error ->
@@ -150,8 +141,8 @@ class TestViewModel @Inject constructor(
         }
     }
 
-    fun retryLoad() {
-        loadQuestionIfNeeded()
+    fun consumeResultNavigation() {
+        _uiState.update { it.copy(navigateToResult = false) }
     }
 
     private suspend fun finishSessionAfterUnexpectedEnd() {
@@ -193,7 +184,6 @@ data class TestUiState(
 ) {
     val isBusy: Boolean get() = isInitialLoading || isSubmitting || isFinishing
 }
-
 
 private fun Throwable.toUiMessage(): String = when (this) {
     is IOException -> "Сеть недоступна. Проверьте подключение и попробуйте снова."
