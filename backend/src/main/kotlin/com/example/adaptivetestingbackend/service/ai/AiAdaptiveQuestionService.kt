@@ -17,17 +17,19 @@ class AiAdaptiveQuestionService(
 
     fun generateQuestion(
         categoryName: String,
+        targetScale: String,
         sourceQuestionText: String,
         difficulty: Int,
         options: List<String>,
     ): GeneratedAdaptiveQuestion {
-        if (sourceQuestionText.isBlank() || options.isEmpty()) {
+        if (options.isEmpty()) {
             return GeneratedAdaptiveQuestion(sourceQuestionText, options)
         }
 
         val correlationId = UUID.randomUUID().toString()
         val prompt = buildPrompt(
             categoryName = categoryName,
+            targetScale = targetScale,
             sourceQuestionText = sourceQuestionText,
             difficulty = difficulty,
             options = options,
@@ -50,18 +52,21 @@ class AiAdaptiveQuestionService(
 
             if (generatedText.isBlank() || generatedOptions.size < options.size) {
                 logger.warn(
-                    "AI adaptive question fallback correlationId={} providerMode={} reason=invalid_payload category={}",
+                    "AI adaptive question fallback correlationId={} providerMode={} reason=invalid_payload category={} scale={}",
                     correlationId,
                     aiClient.providerMode(),
                     categoryName,
+                    targetScale,
                 )
-                fallbackQuestion(categoryName, sourceQuestionText, options)
+                fallbackQuestion(categoryName, targetScale, difficulty, options)
             } else {
                 logger.info(
-                    "AI adaptive question generated correlationId={} providerMode={} result=success category={}",
+                    "AI adaptive question generated correlationId={} providerMode={} result=success category={} scale={} difficulty={}",
                     correlationId,
                     aiClient.providerMode(),
                     categoryName,
+                    targetScale,
+                    difficulty,
                 )
                 GeneratedAdaptiveQuestion(
                     text = generatedText,
@@ -70,18 +75,20 @@ class AiAdaptiveQuestionService(
             }
         }.getOrElse { error ->
             logger.warn(
-                "AI adaptive question fallback correlationId={} providerMode={} reason={} category={}",
+                "AI adaptive question fallback correlationId={} providerMode={} reason={} category={} scale={}",
                 correlationId,
                 aiClient.providerMode(),
                 error.javaClass.simpleName,
                 categoryName,
+                targetScale,
             )
-            fallbackQuestion(categoryName, sourceQuestionText, options)
+            fallbackQuestion(categoryName, targetScale, difficulty, options)
         }
     }
 
     private fun buildPrompt(
         categoryName: String,
+        targetScale: String,
         sourceQuestionText: String,
         difficulty: Int,
         options: List<String>,
@@ -90,21 +97,24 @@ class AiAdaptiveQuestionService(
             "${index + 1}. $option"
         }.joinToString("\n")
         val context = categoryContext(categoryName)
+        val scaleDescription = scaleDescription(targetScale)
+        val difficultyDescription = difficultyDescription(difficulty)
 
         return """
-            Ты генерируешь вопрос для адаптивного психологического и поведенческого тестирования кандидата.
+            Ты генерируешь НОВЫЙ вопрос для адаптивного психологического и поведенческого тестирования кандидата.
 
-            Нужно переформулировать базовый вопрос и варианты ответов так, чтобы они выглядели как реалистичная рабочая ситуация строго по теме выбранной категории.
-            При этом психологический смысл вариантов ответа и их порядок должны сохраниться, потому что за каждым вариантом уже закреплены веса оценки.
+            Важно: НЕ переформулируй базовый вопрос. Базовый вопрос используется только как внутренний психометрический шаблон, чтобы сохранить логику оценки.
+            Нужно создать новую реалистичную рабочую ситуацию с нуля.
 
             Категория теста: $categoryName
             Тематический контекст категории: $context
-            Сложность вопроса: $difficulty
+            Проверяемая шкала: $targetScale — $scaleDescription
+            Сложность: $difficulty — $difficultyDescription
 
-            Базовый вопрос:
+            Психометрический шаблон, который нельзя копировать дословно и нельзя просто перефразировать:
             $sourceQuestionText
 
-            Базовые варианты ответов, порядок менять нельзя:
+            Исходные уровни поведения. Порядок менять нельзя, потому что порядок соответствует оценочным весам от слабого поведения к сильному:
             $optionsText
 
             Требования:
@@ -112,21 +122,19 @@ class AiAdaptiveQuestionService(
             - не используй markdown и блоки ```;
             - не добавляй пояснения до или после JSON;
             - текст должен быть на русском языке;
-            - вопрос должен быть конкретной рабочей ситуацией именно из категории "$categoryName";
-            - нельзя переносить ситуацию в другую профессию или предметную область;
-            - если категория SMM, используй темы контент-плана, публикаций, комментариев, дедлайнов, охватов, репутационных рисков;
-            - если категория Дизайнер, используй темы макетов, правок, брендбука, визуальных материалов, согласований;
-            - если категория Маркетолог, используй темы кампаний, аналитики, сегментов аудитории, гипотез, бюджета;
-            - если категория Техника безопасности, используй темы инструктажей, СИЗ, нарушений регламента, опасных ситуаций, производственной безопасности;
-            - варианты должны быть осмысленными моделями поведения кандидата;
+            - вопрос должен быть новой конкретной ситуацией именно из категории "$categoryName";
+            - вопрос должен проверять шкалу "$targetScale";
+            - нельзя копировать формулировку базового вопроса;
+            - нельзя оставлять универсальную формулировку без связи с категорией;
+            - варианты должны быть новыми формулировками поведения кандидата;
+            - варианты должны сохранять оценочный порядок: 1 — самое слабое поведение, последний — самое сильное поведение;
             - количество вариантов должно быть ровно ${options.size};
-            - порядок вариантов должен соответствовать исходному порядку: от наименее эффективного поведения к наиболее эффективному;
             - не используй шаблонные значения: "Текст вопроса", "Вариант 1", "Вариант 2", "string".
 
             Формат ответа:
             {
-              "text": "конкретный ситуационный вопрос по категории $categoryName",
-              "options": ["вариант поведения 1", "вариант поведения 2"]
+              "text": "новый ситуационный вопрос по категории $categoryName и шкале $targetScale",
+              "options": ["самое слабое поведение", "...", "самое сильное поведение"]
             }
         """.trimIndent()
     }
@@ -142,20 +150,38 @@ class AiAdaptiveQuestionService(
         }
     }
 
+    private fun scaleDescription(scale: String): String = when (scale) {
+        "attention" -> "внимательность, концентрация, аккуратность при работе с деталями"
+        "stress_resistance" -> "устойчивость к стрессу, сохранение качества работы под давлением"
+        "responsibility" -> "ответственность, соблюдение обязательств, признание и исправление ошибок"
+        "adaptability" -> "адаптивность, способность быстро перестраиваться при изменении условий"
+        "decision_speed_accuracy" -> "скорость и точность принятия решений при ограниченном времени"
+        else -> "профессионально значимое поведение кандидата"
+    }
+
+    private fun difficultyDescription(difficulty: Int): String = when {
+        difficulty <= 1 -> "простая ситуация с очевидным правильным поведением"
+        difficulty == 2 -> "ситуация средней сложности с несколькими рабочими ограничениями"
+        else -> "сложная ситуация с конфликтом приоритетов, рисками и ограниченным временем"
+    }
+
     private fun fallbackQuestion(
         categoryName: String,
-        sourceQuestionText: String,
+        targetScale: String,
+        difficulty: Int,
         options: List<String>,
     ): GeneratedAdaptiveQuestion {
-        val prefix = when {
-            categoryName.contains("SMM", ignoreCase = true) -> "В рамках работы с контент-планом и публикациями:"
-            categoryName.contains("дизайн", ignoreCase = true) || categoryName.contains("дизайнер", ignoreCase = true) -> "В рамках подготовки дизайн-макета:"
-            categoryName.contains("маркет", ignoreCase = true) -> "В рамках работы над маркетинговой кампанией:"
-            categoryName.contains("безопас", ignoreCase = true) -> "В ситуации, связанной с техникой безопасности:"
-            else -> "В рамках выбранной категории теста:"
+        val context = when {
+            categoryName.contains("SMM", ignoreCase = true) -> "в работе с контент-планом, публикациями и реакцией аудитории"
+            categoryName.contains("дизайн", ignoreCase = true) || categoryName.contains("дизайнер", ignoreCase = true) -> "при подготовке дизайн-макета и согласовании правок"
+            categoryName.contains("маркет", ignoreCase = true) -> "при работе над маркетинговой кампанией и анализом результатов"
+            categoryName.contains("безопас", ignoreCase = true) -> "в ситуации, связанной с соблюдением техники безопасности"
+            else -> "в рабочей ситуации по выбранной категории теста"
         }
+        val scale = scaleDescription(targetScale)
+        val difficultyText = difficultyDescription(difficulty)
         return GeneratedAdaptiveQuestion(
-            text = "$prefix $sourceQuestionText",
+            text = "Как вы поступите $context, если возникает $difficultyText и требуется проявить $scale?",
             options = options,
         )
     }
