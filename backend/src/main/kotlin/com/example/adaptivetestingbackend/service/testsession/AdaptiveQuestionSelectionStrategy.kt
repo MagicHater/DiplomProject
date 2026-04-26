@@ -7,14 +7,15 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.math.RoundingMode
+import kotlin.math.abs
 import kotlin.math.max
 
 /**
- * Простой explainable алгоритм выбора следующего вопроса:
- * 1) не повторяем уже заданные вопросы;
- * 2) учитываем дефицит coverage по 5 шкалам;
- * 3) добавляем штраф/бонус за неопределенность (variance в простом виде);
- * 4) ограничиваем количество вопросов лимитом сессии.
+ * Explainable adaptive selection algorithm:
+ * 1) do not repeat issued source questions;
+ * 2) prioritize scales with low coverage and high uncertainty;
+ * 3) adapt target difficulty using current average answer score;
+ * 4) prefer questions close to target difficulty while still respecting scale priorities.
  */
 @Service
 class AdaptiveQuestionSelectionStrategy(
@@ -46,17 +47,28 @@ class AdaptiveQuestionSelectionStrategy(
         }
 
         val scalePriorities = calculateScalePriorities(state)
+        val targetDifficulty = targetDifficulty(state, availableQuestions)
 
         return availableQuestions
             .sortedWith(
-                compareByDescending<QuestionEntity> { question -> questionScore(question, scalePriorities) }
-                    .thenBy { it.difficulty }
+                compareByDescending<QuestionEntity> { question ->
+                    questionScore(
+                        question = question,
+                        scalePriorities = scalePriorities,
+                        targetDifficulty = targetDifficulty,
+                    )
+                }
+                    .thenBy { abs(it.difficulty.toInt() - targetDifficulty) }
                     .thenByDescending { it.priority },
             )
             .firstOrNull()
     }
 
-    private fun questionScore(question: QuestionEntity, scalePriorities: Map<String, BigDecimal>): BigDecimal {
+    private fun questionScore(
+        question: QuestionEntity,
+        scalePriorities: Map<String, BigDecimal>,
+        targetDifficulty: Int,
+    ): BigDecimal {
         val weights = parseWeights(question.scaleWeightsJson)
         val adaptiveComponent = scales.fold(BigDecimal.ZERO) { acc, scale ->
             val weight = weights[scale] ?: BigDecimal.ZERO
@@ -64,7 +76,40 @@ class AdaptiveQuestionSelectionStrategy(
         }
 
         val priorityBonus = BigDecimal(question.priority).multiply(BigDecimal("0.01"))
-        return adaptiveComponent.add(priorityBonus).setScale(6, RoundingMode.HALF_UP)
+        val difficultyDistance = abs(question.difficulty.toInt() - targetDifficulty)
+        val difficultyBonus = when (difficultyDistance) {
+            0 -> BigDecimal("0.30")
+            1 -> BigDecimal("0.12")
+            else -> BigDecimal.ZERO
+        }
+
+        return adaptiveComponent
+            .add(priorityBonus)
+            .add(difficultyBonus)
+            .setScale(6, RoundingMode.HALF_UP)
+    }
+
+    private fun targetDifficulty(state: AdaptiveSessionState, availableQuestions: List<QuestionEntity>): Int {
+        val minDifficulty = availableQuestions.minOf { it.difficulty.toInt() }
+        val maxDifficulty = availableQuestions.maxOf { it.difficulty.toInt() }
+
+        if (state.answeredQuestions == 0) {
+            return minDifficulty.coerceAtLeast(1)
+        }
+
+        val averageAnswer = state.cumulativeScore
+            .divide(BigDecimal(state.answeredQuestions), 4, RoundingMode.HALF_UP)
+            .toDouble()
+
+        val target = when {
+            averageAnswer >= 1.0 -> maxDifficulty
+            averageAnswer <= -0.75 -> minDifficulty
+            averageAnswer >= 0.35 -> (minDifficulty + 1).coerceAtMost(maxDifficulty)
+            averageAnswer <= -0.25 -> minDifficulty
+            else -> ((minDifficulty + maxDifficulty) / 2.0).toInt().coerceIn(minDifficulty, maxDifficulty)
+        }
+
+        return target.coerceIn(minDifficulty, maxDifficulty)
     }
 
     private fun calculateScalePriorities(state: AdaptiveSessionState): Map<String, BigDecimal> {
@@ -72,7 +117,6 @@ class AdaptiveQuestionSelectionStrategy(
             val coverage = state.scaleCoverage[scale] ?: BigDecimal.ZERO
             val gap = targetCoveragePerScale.subtract(coverage).max(BigDecimal.ZERO)
             val uncertainty = estimateUncertainty(state, scale)
-            // gap — основной фактор, uncertainty — дополнительный уточняющий фактор.
             gap.add(uncertainty.multiply(BigDecimal("0.50"))).setScale(6, RoundingMode.HALF_UP)
         }
     }
@@ -93,7 +137,6 @@ class AdaptiveQuestionSelectionStrategy(
             0.0,
         )
 
-        // Чем меньше coverage и чем выше variance, тем выше неопределенность.
         val coverage = state.scaleCoverage[scale] ?: BigDecimal.ZERO
         val coverageFactor = BigDecimal.ONE.divide(BigDecimal.ONE.add(coverage), 8, RoundingMode.HALF_UP)
         return BigDecimal.valueOf(variance).multiply(coverageFactor).setScale(6, RoundingMode.HALF_UP)
