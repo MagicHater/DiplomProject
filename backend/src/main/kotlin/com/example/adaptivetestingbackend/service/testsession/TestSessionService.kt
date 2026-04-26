@@ -27,10 +27,13 @@ import com.example.adaptivetestingbackend.repository.TestCategoryRepository
 import com.example.adaptivetestingbackend.repository.TestSessionRepository
 import com.example.adaptivetestingbackend.repository.UserRepository
 import com.example.adaptivetestingbackend.service.ai.AiAdaptiveQuestionService
+import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
+import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.UUID
 
@@ -49,6 +52,7 @@ class TestSessionService(
     private val resultProfileMapper: ResultProfileMapper,
     private val testCategoryRepository: TestCategoryRepository,
     private val aiAdaptiveQuestionService: AiAdaptiveQuestionService,
+    private val objectMapper: ObjectMapper,
 ) {
     @Transactional
     fun createSession(userEmail: String, categoryId: UUID?): CreateTestSessionResponse {
@@ -142,6 +146,7 @@ class TestSessionService(
         val sourceOptions = questionOptionRepository.findByQuestionIdOrderByOptionOrderAsc(nextQuestion.id)
         val generatedQuestion = aiAdaptiveQuestionService.generateQuestion(
             categoryName = session.category.name,
+            targetScale = dominantScale(nextQuestion.scaleWeightsJson),
             sourceQuestionText = nextQuestion.text,
             difficulty = nextQuestion.difficulty.toInt(),
             options = sourceOptions.map { it.optionText },
@@ -345,6 +350,13 @@ class TestSessionService(
         }
 
         return user
+    }
+
+    private fun dominantScale(scaleWeightsJson: String): String {
+        return runCatching {
+            val weights = objectMapper.readValue(scaleWeightsJson, object : TypeReference<Map<String, BigDecimal>>() {})
+            weights.maxByOrNull { it.value.abs() }?.key
+        }.getOrNull() ?: "attention"
     }
 
     private fun ensureSessionAccess(session: TestSessionEntity, actor: SessionActor) {
