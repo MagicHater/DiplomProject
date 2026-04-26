@@ -44,6 +44,7 @@ data class ControllerDashboardResponse(
     val distribution: ControllerDashboardDistributionResponse,
     val weakMetrics: List<ControllerDashboardWeakMetricResponse>,
     val topCandidates: List<ControllerDashboardCandidateRankResponse>,
+    val categoryStatistics: List<ControllerDashboardCategoryStatisticsResponse>,
 )
 
 data class ControllerDashboardAveragesResponse(
@@ -80,4 +81,18 @@ data class ControllerDashboardCandidateRankResponse(
     val adaptability: Double,
     val decisionSpeedAccuracy: Double,
     val lastCompletedAt: OffsetDateTime?,
+)
+
+data class ControllerDashboardCategoryStatisticsResponse(
+    val categoryId: String,
+    val categoryName: String,
+    val sessionsCount: Int,
+    val averageScore: Double,
+    val attention: Double,
+    val stressResistance: Double,
+    val responsibility: Double,
+    val adaptability: Double,
+    val decisionSpeedAccuracy: Double,
+    val weakestMetricTitle: String,
+    val weakestMetricAverage: Double,
 )
