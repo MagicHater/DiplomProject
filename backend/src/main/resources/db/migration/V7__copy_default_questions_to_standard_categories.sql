@@ -102,7 +102,12 @@ INSERT INTO question_options (
     scale_contributions_json
 )
 SELECT
-    ('4' || LPAD(option_number::text, 31, '0'))::UUID,
+    (
+        '4' ||
+        LPAD(((1000 + option_number)::text), 7, '0') ||
+        '-0000-0000-0000-' ||
+        LPAD(option_number::text, 12, '0')
+    )::UUID,
     new_question_id,
     option_order,
     option_text,
