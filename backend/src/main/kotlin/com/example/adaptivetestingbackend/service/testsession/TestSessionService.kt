@@ -125,6 +125,19 @@ class TestSessionService(
         ensureSessionAccess(session, actor)
 
         val snapshots = questionSnapshotRepository.findBySessionIdOrderByQuestionOrderAsc(sessionId)
+        val unansweredSnapshot = snapshots.lastOrNull { snapshot ->
+            !answerRepository.existsByQuestionSnapshotId(snapshot.id)
+        }
+
+        if (unansweredSnapshot != null) {
+            return NextQuestionResponse(
+                sessionId = session.id,
+                status = session.status.dbValue,
+                hasNextQuestion = true,
+                question = snapshotToQuestionDto(unansweredSnapshot),
+            )
+        }
+
         val askedQuestionIds = snapshots.mapNotNull { it.question?.id }.toSet()
         val sessionState = adaptiveSessionStateService.readState(session.adaptiveStateJson)
 
@@ -172,7 +185,7 @@ class TestSessionService(
                 scaleWeightsJson = nextQuestion.scaleWeightsJson,
                 difficulty = nextQuestion.difficulty,
                 priority = nextQuestion.priority,
-                optionSnapshotsJson = null,
+                optionSnapshotsJson = objectMapper.writeValueAsString(optionSnapshots),
             ),
         )
 
@@ -180,13 +193,7 @@ class TestSessionService(
             sessionId = session.id,
             status = session.status.dbValue,
             hasNextQuestion = true,
-            question = SessionQuestionDto(
-                snapshotId = snapshot.id,
-                order = snapshot.questionOrder,
-                text = snapshot.questionText,
-                difficulty = snapshot.difficulty,
-                options = optionSnapshots,
-            ),
+            question = snapshotToQuestionDto(snapshot),
         )
     }
 
@@ -336,6 +343,29 @@ class TestSessionService(
     }
 
     fun resolveCandidateActor(userEmail: String): SessionActor.CandidateActor = SessionActor.CandidateActor(getCandidateUser(userEmail))
+
+    private fun snapshotToQuestionDto(snapshot: QuestionSnapshotEntity): SessionQuestionDto {
+        val options = snapshot.optionSnapshotsJson
+            ?.let { json -> runCatching { objectMapper.readValue(json, object : TypeReference<List<SessionQuestionOptionDto>>() {}) }.getOrNull() }
+            ?: snapshot.question?.let { question ->
+                questionOptionRepository.findByQuestionIdOrderByOptionOrderAsc(question.id).mapIndexed { index, option ->
+                    SessionQuestionOptionDto(
+                        optionId = option.id,
+                        order = (index + 1).toShort(),
+                        text = option.optionText,
+                    )
+                }
+            }
+            ?: emptyList()
+
+        return SessionQuestionDto(
+            snapshotId = snapshot.id,
+            order = snapshot.questionOrder,
+            text = snapshot.questionText,
+            difficulty = snapshot.difficulty,
+            options = options,
+        )
+    }
 
     private fun resolveDefaultCategoryId(): UUID =
         testCategoryRepository.findFirstByIsActiveTrueOrderByNameAsc()?.id
