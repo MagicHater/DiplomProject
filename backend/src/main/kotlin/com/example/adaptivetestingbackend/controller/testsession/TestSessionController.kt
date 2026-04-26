@@ -9,6 +9,7 @@ import com.example.adaptivetestingbackend.dto.testsession.SubmitAnswerResponse
 import com.example.adaptivetestingbackend.service.testsession.SessionActor
 import com.example.adaptivetestingbackend.service.testsession.TestSessionService
 import jakarta.validation.Valid
+import org.springframework.http.HttpStatus
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.web.bind.annotation.GetMapping
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
 
 @RestController
@@ -65,12 +67,14 @@ class TestSessionController(
     }
 
     private fun resolveActor(sessionId: UUID, userDetails: UserDetails?, guestSessionKey: String?): SessionActor {
-        if (userDetails != null) {
-            return testSessionService.resolveCandidateActor(userDetails.username)
-        }
         if (!guestSessionKey.isNullOrBlank()) {
             return SessionActor.GuestActor(sessionId = sessionId, guestKey = guestSessionKey)
         }
-        throw org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED, "Authentication required")
+
+        if (userDetails != null) {
+            return testSessionService.resolveCandidateActor(userDetails.username)
+        }
+
+        throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required")
     }
 }
