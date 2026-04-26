@@ -35,7 +35,7 @@ class ResultCalculationService(
             }
         }
 
-        val reliabilityFactor = responsePatternReliabilityFactor(answers)
+        val reliability = analyzeReliability(answers)
 
         val normalizedScores = scales.associateWith { scale ->
             applyReliabilityDamping(
@@ -44,7 +44,7 @@ class ResultCalculationService(
                     minScore = minScores.getValue(scale),
                     maxScore = maxScores.getValue(scale),
                 ),
-                reliabilityFactor = reliabilityFactor,
+                reliabilityFactor = reliability.factor,
             )
         }
 
@@ -54,6 +54,8 @@ class ResultCalculationService(
             responsibility = normalizedScores.getValue("responsibility"),
             adaptability = normalizedScores.getValue("adaptability"),
             decisionSpeedAccuracy = normalizedScores.getValue("decision_speed_accuracy"),
+            reliabilityFactor = reliability.factor,
+            reliabilityFlags = reliability.flags,
         )
     }
 
@@ -79,9 +81,16 @@ class ResultCalculationService(
             .setScale(2, RoundingMode.HALF_UP)
     }
 
-    private fun responsePatternReliabilityFactor(answers: List<AnswerEntity>): BigDecimal {
+    private fun analyzeReliability(answers: List<AnswerEntity>): ReliabilityAnalysis {
+        if (answers.isEmpty()) {
+            return ReliabilityAnalysis(BigDecimal("0.70"), listOf("Недостаточно ответов для оценки достоверности."))
+        }
+
+        var factor = if (answers.size < MIN_ANSWERS_FOR_FULL_CONFIDENCE) BigDecimal("0.70") else BigDecimal.ONE
+        val flags = mutableListOf<String>()
+
         if (answers.size < MIN_ANSWERS_FOR_FULL_CONFIDENCE) {
-            return BigDecimal("0.70")
+            flags += "Мало ответов: результат следует интерпретировать осторожно."
         }
 
         val values = answers.map { it.answerValue ?: BigDecimal.ZERO }
@@ -89,7 +98,8 @@ class ResultCalculationService(
         val allSameExtreme = distinctValues.size == 1 && distinctValues.first().abs() >= MAX_ANSWER_VALUE
 
         if (allSameExtreme) {
-            return BigDecimal("0.75")
+            factor = factor.min(BigDecimal("0.70"))
+            flags += "Обнаружен однотипный крайний паттерн ответов. Возможна социально желательная или механическая стратегия прохождения."
         }
 
         val positiveExtremeRatio = values.count { it >= MAX_ANSWER_VALUE }.toBigDecimal()
@@ -97,11 +107,42 @@ class ResultCalculationService(
         val negativeExtremeRatio = values.count { it <= MIN_ANSWER_VALUE }.toBigDecimal()
             .divide(values.size.toBigDecimal(), 8, RoundingMode.HALF_UP)
 
-        return when {
-            positiveExtremeRatio >= BigDecimal("0.80") || negativeExtremeRatio >= BigDecimal("0.80") -> BigDecimal("0.85")
-            distinctValues.size <= 2 && answers.size >= MIN_ANSWERS_FOR_FULL_CONFIDENCE -> BigDecimal("0.90")
-            else -> BigDecimal.ONE
+        when {
+            positiveExtremeRatio >= BigDecimal("0.80") -> {
+                factor = factor.min(BigDecimal("0.78"))
+                flags += "Очень высокая доля максимально положительных ответов. Возможен эффект социальной желательности."
+            }
+            negativeExtremeRatio >= BigDecimal("0.80") -> {
+                factor = factor.min(BigDecimal("0.82"))
+                flags += "Очень высокая доля максимально отрицательных ответов. Возможна незаинтересованность или намеренное искажение результата."
+            }
+            distinctValues.size <= 2 && answers.size >= MIN_ANSWERS_FOR_FULL_CONFIDENCE -> {
+                factor = factor.min(BigDecimal("0.90"))
+                flags += "Низкая вариативность ответов: кандидат использовал ограниченный набор вариантов."
+            }
         }
+
+        val responseTimes = answers.mapNotNull { it.responseTimeMs }.filter { it > 0 }
+        if (responseTimes.size >= MIN_TIMED_ANSWERS_FOR_ANALYSIS) {
+            val fastRatio = responseTimes.count { it < FAST_RESPONSE_MS }.toBigDecimal()
+                .divide(responseTimes.size.toBigDecimal(), 8, RoundingMode.HALF_UP)
+            val slowRatio = responseTimes.count { it > SLOW_RESPONSE_MS }.toBigDecimal()
+                .divide(responseTimes.size.toBigDecimal(), 8, RoundingMode.HALF_UP)
+
+            if (fastRatio >= BigDecimal("0.60")) {
+                factor = factor.min(BigDecimal("0.82"))
+                flags += "Слишком высокая доля быстрых ответов: возможны невнимательное прохождение или угадывание."
+            }
+            if (slowRatio >= BigDecimal("0.60")) {
+                factor = factor.min(BigDecimal("0.88"))
+                flags += "Большая доля чрезмерно долгих ответов: возможны сомнения, внешние паузы или нестабильность стратегии."
+            }
+        }
+
+        return ReliabilityAnalysis(
+            factor = factor.coerceIn(BigDecimal("0.60"), BigDecimal.ONE).setScale(2, RoundingMode.HALF_UP),
+            flags = flags,
+        )
     }
 
     private fun applyReliabilityDamping(normalized: BigDecimal, reliabilityFactor: BigDecimal): BigDecimal {
@@ -127,6 +168,13 @@ class ResultCalculationService(
         val responsibility: BigDecimal,
         val adaptability: BigDecimal,
         val decisionSpeedAccuracy: BigDecimal,
+        val reliabilityFactor: BigDecimal = BigDecimal.ONE,
+        val reliabilityFlags: List<String> = emptyList(),
+    )
+
+    private data class ReliabilityAnalysis(
+        val factor: BigDecimal,
+        val flags: List<String>,
     )
 
     private companion object {
@@ -135,5 +183,8 @@ class ResultCalculationService(
         val HUNDRED: BigDecimal = BigDecimal("100")
         val NEUTRAL_SCORE: BigDecimal = BigDecimal("50.00")
         const val MIN_ANSWERS_FOR_FULL_CONFIDENCE: Int = 3
+        const val MIN_TIMED_ANSWERS_FOR_ANALYSIS: Int = 3
+        const val FAST_RESPONSE_MS: Long = 1200
+        const val SLOW_RESPONSE_MS: Long = 45000
     }
 }
