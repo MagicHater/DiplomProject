@@ -74,5 +74,10 @@ data class ControllerDashboardCandidateRankResponse(
     val email: String? = null,
     val sessionsCount: Int,
     val averageScore: Double,
+    val attention: Double,
+    val stressResistance: Double,
+    val responsibility: Double,
+    val adaptability: Double,
+    val decisionSpeedAccuracy: Double,
     val lastCompletedAt: OffsetDateTime?,
 )
