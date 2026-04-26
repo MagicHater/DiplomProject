@@ -22,18 +22,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.diplomproject.data.remote.ControllerDashboardAveragesResponseDto
 import com.example.diplomproject.data.remote.ControllerDashboardCandidateRankResponseDto
-import kotlin.math.abs
+import com.example.diplomproject.data.remote.ControllerDashboardCategoryStatisticsResponseDto
 import kotlin.math.roundToInt
 
 @Composable
@@ -43,7 +39,6 @@ fun ControllerDashboardScreen(
     val vm: ControllerDashboardViewModel = hiltViewModel()
     val data by vm.state.collectAsState()
     val loading by vm.loading.collectAsState()
-    var selectedProfile by remember { mutableStateOf(JobRequirementProfile.presets.first()) }
 
     AppScreenScaffold(title = "Дашборд аналитики", onBackClick = onBack) { innerPadding ->
         when {
@@ -102,11 +97,23 @@ fun ControllerDashboardScreen(
                     }
 
                     item {
-                        JobRequirementProfileCard(
-                            selectedProfile = selectedProfile,
-                            averages = dashboard.averages,
-                            onProfileSelected = { selectedProfile = it },
-                        )
+                        Text("Статистика по тестам", style = MaterialTheme.typography.titleMedium)
+                    }
+
+                    if (dashboard.categoryStatistics.isEmpty()) {
+                        item {
+                            Card(modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    text = "Пока нет данных по категориям тестов.",
+                                    modifier = Modifier.padding(16.dp),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                        }
+                    } else {
+                        items(dashboard.categoryStatistics, key = { it.categoryId }) { category ->
+                            CategoryAnalyticsCard(category = category)
+                        }
                     }
 
                     item {
@@ -194,22 +201,7 @@ private fun DashboardStatCard(
 }
 
 @Composable
-private fun JobRequirementProfileCard(
-    selectedProfile: JobRequirementProfile,
-    averages: ControllerDashboardAveragesResponseDto,
-    onProfileSelected: (JobRequirementProfile) -> Unit,
-) {
-    val rows = selectedProfile.requirements.map { requirement ->
-        RequirementComparisonRow(
-            title = requirement.title,
-            required = requirement.required,
-            actual = averages.valueFor(requirement.metricCode),
-        )
-    }
-    val passedCount = rows.count { it.deficit >= 0 }
-    val readiness = if (rows.isEmpty()) 0 else ((passedCount.toDouble() / rows.size.toDouble()) * 100).roundToInt()
-    val weakest = rows.minByOrNull { it.deficit }
-
+private fun CategoryAnalyticsCard(category: ControllerDashboardCategoryStatisticsResponseDto) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -218,94 +210,37 @@ private fun JobRequirementProfileCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text("Профиль требований должности", style = MaterialTheme.typography.titleMedium)
             Text(
-                "Сравнение средних результатов группы с минимальными требованиями выбранной роли.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                JobRequirementProfile.presets.forEach { profile ->
-                    val selected = profile.id == selectedProfile.id
-                    if (selected) {
-                        Button(onClick = { onProfileSelected(profile) }, modifier = Modifier.fillMaxWidth()) {
-                            Text(profile.title)
-                        }
-                    } else {
-                        OutlinedButton(onClick = { onProfileSelected(profile) }, modifier = Modifier.fillMaxWidth()) {
-                            Text(profile.title)
-                        }
-                    }
-                }
-            }
-
-            Text(
-                text = "Индекс соответствия: $readiness%",
+                text = category.categoryName,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
-
-            weakest?.let {
-                Text(
-                    text = if (it.deficit < 0) {
-                        "Ключевая зона риска: ${it.title} (${it.deficit.formatSigned()})"
-                    } else {
-                        "Группа соответствует требованиям выбранной роли."
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (it.deficit < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                DashboardStatCard(
+                    title = "Сессий",
+                    value = category.sessionsCount.toString(),
+                    modifier = Modifier.weight(1f),
+                )
+                DashboardStatCard(
+                    title = "Средний балл",
+                    value = category.averageScore.formatScore(),
+                    modifier = Modifier.weight(1f),
                 )
             }
-
-            rows.forEach { row ->
-                RequirementComparisonItem(row)
-            }
-        }
-    }
-}
-
-@Composable
-private fun RequirementComparisonItem(row: RequirementComparisonRow) {
-    val actualProgress = (row.actual / 100.0).toFloat().coerceIn(0f, 1f)
-    val requiredProgress = (row.required / 100.0).toFloat().coerceIn(0f, 1f)
-    val statusText = when {
-        row.deficit >= 3 -> "выше нормы +${row.deficit.formatScore()}"
-        row.deficit >= -2 -> "почти норма ${row.deficit.formatSigned()}"
-        else -> "дефицит ${row.deficit.formatSigned()}"
-    }
-    val statusColor = when {
-        row.deficit >= 0 -> MaterialTheme.colorScheme.primary
-        abs(row.deficit) <= 2 -> MaterialTheme.colorScheme.tertiary
-        else -> MaterialTheme.colorScheme.error
-    }
-
-    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = row.title,
+                text = "Слабая зона: ${category.weakestMetricTitle} (${category.weakestMetricAverage.formatScore()})",
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = "≥ ${row.required.formatScore()} / ${row.actual.formatScore()}",
-                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
                 fontWeight = FontWeight.SemiBold,
             )
+            DashboardMetricBar("Стрессоустойчивость", category.stressResistance)
+            DashboardMetricBar("Внимание", category.attention)
+            DashboardMetricBar("Ответственность", category.responsibility)
+            DashboardMetricBar("Адаптивность", category.adaptability)
+            DashboardMetricBar("Скорость решений", category.decisionSpeedAccuracy)
         }
-        LinearProgressIndicator(progress = { requiredProgress }, modifier = Modifier.fillMaxWidth())
-        LinearProgressIndicator(progress = { actualProgress }, modifier = Modifier.fillMaxWidth())
-        Text(
-            text = statusText,
-            style = MaterialTheme.typography.bodySmall,
-            color = statusColor,
-            fontWeight = FontWeight.SemiBold,
-        )
     }
 }
 
@@ -394,72 +329,4 @@ private fun CandidateComparisonRow(index: Int, candidate: ControllerDashboardCan
     }
 }
 
-private data class JobRequirementProfile(
-    val id: String,
-    val title: String,
-    val requirements: List<JobRequirement>,
-) {
-    companion object {
-        val presets = listOf(
-            JobRequirementProfile(
-                id = "asu_operator",
-                title = "Оператор АСУ",
-                requirements = listOf(
-                    JobRequirement("stressResistance", "Стрессоустойчивость", 75.0),
-                    JobRequirement("attention", "Внимание", 80.0),
-                    JobRequirement("responsibility", "Ответственность", 70.0),
-                    JobRequirement("adaptability", "Адаптивность", 65.0),
-                    JobRequirement("decisionSpeedAccuracy", "Скорость решений", 70.0),
-                ),
-            ),
-            JobRequirementProfile(
-                id = "dispatcher",
-                title = "Диспетчер",
-                requirements = listOf(
-                    JobRequirement("stressResistance", "Стрессоустойчивость", 80.0),
-                    JobRequirement("attention", "Внимание", 85.0),
-                    JobRequirement("responsibility", "Ответственность", 75.0),
-                    JobRequirement("adaptability", "Адаптивность", 70.0),
-                    JobRequirement("decisionSpeedAccuracy", "Скорость решений", 75.0),
-                ),
-            ),
-            JobRequirementProfile(
-                id = "manager",
-                title = "Руководитель смены",
-                requirements = listOf(
-                    JobRequirement("stressResistance", "Стрессоустойчивость", 70.0),
-                    JobRequirement("attention", "Внимание", 70.0),
-                    JobRequirement("responsibility", "Ответственность", 85.0),
-                    JobRequirement("adaptability", "Адаптивность", 80.0),
-                    JobRequirement("decisionSpeedAccuracy", "Скорость решений", 70.0),
-                ),
-            ),
-        )
-    }
-}
-
-private data class JobRequirement(
-    val metricCode: String,
-    val title: String,
-    val required: Double,
-)
-
-private data class RequirementComparisonRow(
-    val title: String,
-    val required: Double,
-    val actual: Double,
-) {
-    val deficit: Double = actual - required
-}
-
-private fun ControllerDashboardAveragesResponseDto.valueFor(metricCode: String): Double = when (metricCode) {
-    "attention" -> attention
-    "stressResistance" -> stressResistance
-    "responsibility" -> responsibility
-    "adaptability" -> adaptability
-    "decisionSpeedAccuracy" -> decisionSpeedAccuracy
-    else -> 0.0
-}
-
 private fun Double.formatScore(): String = "${roundToInt()}"
-private fun Double.formatSigned(): String = if (this >= 0) "+${formatScore()}" else "-${abs(this).roundToInt()}"
