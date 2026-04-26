@@ -11,6 +11,7 @@ data class ControllerDashboardResponseDto(
     @SerialName("distribution") val distribution: ControllerDashboardDistributionResponseDto,
     @SerialName("weakMetrics") val weakMetrics: List<ControllerDashboardWeakMetricResponseDto>,
     @SerialName("topCandidates") val topCandidates: List<ControllerDashboardCandidateRankResponseDto>,
+    @SerialName("categoryStatistics") val categoryStatistics: List<ControllerDashboardCategoryStatisticsResponseDto> = emptyList(),
 )
 
 @Serializable
@@ -45,5 +46,25 @@ data class ControllerDashboardCandidateRankResponseDto(
     @SerialName("email") val email: String? = null,
     @SerialName("sessionsCount") val sessionsCount: Int,
     @SerialName("averageScore") val averageScore: Double,
+    @SerialName("attention") val attention: Double = 0.0,
+    @SerialName("stressResistance") val stressResistance: Double = 0.0,
+    @SerialName("responsibility") val responsibility: Double = 0.0,
+    @SerialName("adaptability") val adaptability: Double = 0.0,
+    @SerialName("decisionSpeedAccuracy") val decisionSpeedAccuracy: Double = 0.0,
     @SerialName("lastCompletedAt") val lastCompletedAt: String? = null,
+)
+
+@Serializable
+data class ControllerDashboardCategoryStatisticsResponseDto(
+    @SerialName("categoryId") val categoryId: String,
+    @SerialName("categoryName") val categoryName: String,
+    @SerialName("sessionsCount") val sessionsCount: Int,
+    @SerialName("averageScore") val averageScore: Double,
+    @SerialName("attention") val attention: Double,
+    @SerialName("stressResistance") val stressResistance: Double,
+    @SerialName("responsibility") val responsibility: Double,
+    @SerialName("adaptability") val adaptability: Double,
+    @SerialName("decisionSpeedAccuracy") val decisionSpeedAccuracy: Double,
+    @SerialName("weakestMetricTitle") val weakestMetricTitle: String,
+    @SerialName("weakestMetricAverage") val weakestMetricAverage: Double,
 )
