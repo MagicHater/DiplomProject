@@ -40,6 +40,7 @@ import java.util.UUID
 
 @Service
 class TestSessionService(
+    private val riskAssessmentService: RiskAssessmentService,
     private val userRepository: UserRepository,
     private val testSessionRepository: TestSessionRepository,
     private val questionRepository: QuestionRepository,
