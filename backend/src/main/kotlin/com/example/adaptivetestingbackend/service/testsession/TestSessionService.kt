@@ -28,8 +28,10 @@ import com.example.adaptivetestingbackend.repository.TestSessionRepository
 import com.example.adaptivetestingbackend.repository.UserRepository
 import com.example.adaptivetestingbackend.service.ai.AiAdaptiveQuestionService
 import com.example.adaptivetestingbackend.service.ai.AiResultInterpretationService
+import com.example.adaptivetestingbackend.service.ai.GeneratedAdaptiveQuestion
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -57,6 +59,8 @@ class TestSessionService(
     private val aiResultInterpretationService: AiResultInterpretationService,
     private val objectMapper: ObjectMapper,
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     @Transactional
     fun createSession(userEmail: String, categoryId: UUID?): CreateTestSessionResponse {
         val user = getCandidateUser(userEmail)
@@ -160,13 +164,26 @@ class TestSessionService(
         }
 
         val sourceOptions = questionOptionRepository.findByQuestionIdOrderByOptionOrderAsc(nextQuestion.id)
-        val generatedQuestion = aiAdaptiveQuestionService.generateQuestion(
-            categoryName = session.category.name,
-            targetScale = dominantScale(nextQuestion.scaleWeightsJson),
-            sourceQuestionText = nextQuestion.text,
-            difficulty = nextQuestion.difficulty.toInt(),
-            options = sourceOptions.map { it.optionText },
-        )
+        val generatedQuestion = runCatching {
+            aiAdaptiveQuestionService.generateQuestion(
+                categoryName = session.category.name,
+                targetScale = dominantScale(nextQuestion.scaleWeightsJson),
+                sourceQuestionText = nextQuestion.text,
+                difficulty = nextQuestion.difficulty.toInt(),
+                options = sourceOptions.map { it.optionText },
+            )
+        }.getOrElse { error ->
+            logger.warn(
+                "AI adaptive question outer fallback sessionId={} category={} reason={}",
+                session.id,
+                session.category.code,
+                error.javaClass.simpleName,
+            )
+            GeneratedAdaptiveQuestion(
+                text = nextQuestion.text,
+                options = sourceOptions.map { it.optionText },
+            )
+        }
 
         val nextOrder = snapshots.size + 1
         val optionSnapshots = sourceOptions.mapIndexed { index, option ->
@@ -286,10 +303,13 @@ class TestSessionService(
         val answers = answerRepository.findBySessionId(session.id)
         val calculated = resultCalculationService.calculate(answers)
         val baseSummary = resultProfileMapper.buildOverallSummary(calculated)
+        val riskAssessment = riskAssessmentService.assess(calculated)
+        val summaryWithRisk = baseSummary + "\n\n" + riskAssessment.toSummaryBlock()
         val aiSummary = aiResultInterpretationService.interpret(
             categoryName = session.category.name,
             profile = calculated,
-            fallbackSummary = baseSummary,
+            riskAssessment = riskAssessment,
+            fallbackSummary = summaryWithRisk,
         )
         val now = OffsetDateTime.now()
 
