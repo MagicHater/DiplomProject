@@ -181,6 +181,6 @@ enum class CandidateMetric(val title: String) {
     StressResistance("Стрессоустойчивость"),
     Attention("Внимание"),
     Responsibility("Ответственность"),
-    Adaptability("Гибкость"),
+    Adaptability("Адаптивность"),
     DecisionSpeedAccuracy("Скорость принятия решений"),
 }
