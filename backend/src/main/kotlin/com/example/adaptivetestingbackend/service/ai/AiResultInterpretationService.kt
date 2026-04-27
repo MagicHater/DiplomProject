@@ -2,6 +2,7 @@ package com.example.adaptivetestingbackend.service.ai
 
 import com.example.adaptivetestingbackend.ai.client.AiGenerateTextRequest
 import com.example.adaptivetestingbackend.ai.client.AiTextGenerationClient
+import com.example.adaptivetestingbackend.service.testsession.CandidateRiskAssessment
 import com.example.adaptivetestingbackend.service.testsession.ResultCalculationService
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
@@ -18,10 +19,11 @@ class AiResultInterpretationService(
     fun interpret(
         categoryName: String,
         profile: ResultCalculationService.CalculatedProfile,
+        riskAssessment: CandidateRiskAssessment,
         fallbackSummary: String,
     ): String {
         val correlationId = UUID.randomUUID().toString()
-        val prompt = buildPrompt(categoryName, profile, fallbackSummary)
+        val prompt = buildPrompt(categoryName, profile, riskAssessment, fallbackSummary)
 
         return runCatching {
             val response = aiClient.generateText(
@@ -34,12 +36,14 @@ class AiResultInterpretationService(
             val payload = objectMapper.readTree(cleanJson(response.content))
             val summary = payload.path("summary").asText().trim()
             val behavior = payload.path("behavior").asText().trim()
+            val riskProfile = payload.path("riskProfile").asText().trim()
             val risks = payload.path("risks").map { it.asText().trim() }.filter { it.isNotBlank() }
             val recommendations = payload.path("recommendations").map { it.asText().trim() }.filter { it.isNotBlank() }
 
             val aiText = buildString {
                 if (summary.isNotBlank()) appendLine(summary)
                 if (behavior.isNotBlank()) appendLine("\nПоведенческий вывод: $behavior")
+                if (riskProfile.isNotBlank()) appendLine("\nРиск профиля: $riskProfile") else appendLine("\n${riskAssessment.toSummaryBlock()}")
                 if (risks.isNotEmpty()) appendLine("\nРиски: ${risks.joinToString("; ")}")
                 if (recommendations.isNotEmpty()) appendLine("\nРекомендации: ${recommendations.joinToString("; ")}")
             }.trim()
@@ -59,6 +63,7 @@ class AiResultInterpretationService(
     private fun buildPrompt(
         categoryName: String,
         profile: ResultCalculationService.CalculatedProfile,
+        riskAssessment: CandidateRiskAssessment,
         fallbackSummary: String,
     ): String {
         val explanations = profile.scaleExplanations.entries.joinToString("\n") { (scale, explanation) ->
@@ -69,10 +74,17 @@ class AiResultInterpretationService(
         } else {
             profile.reliabilityFlags.joinToString("; ")
         }
+        val riskFactors = if (riskAssessment.factors.isEmpty()) {
+            "Существенных факторов риска не выявлено."
+        } else {
+            riskAssessment.factors.joinToString("\n") { factor ->
+                "- ${factor.title}: ${factor.description}"
+            }
+        }
 
         return """
             Ты анализируешь результат адаптивного психологического/поведенческого теста кандидата.
-            Нужно дать краткое профессиональное объяснение поведения кандидата по итогам ответов.
+            Нужно дать краткое профессиональное объяснение поведения кандидата по итогам ответов и описать риск профиля.
 
             Категория теста: $categoryName
 
@@ -89,6 +101,12 @@ class AiResultInterpretationService(
             Достоверность результата: ${profile.reliabilityFactor}
             Флаги достоверности: $reliability
 
+            Строгая оценка риска системы:
+            Уровень риска: ${riskAssessment.title}
+            Факторы риска:
+            $riskFactors
+            Рекомендация системы: ${riskAssessment.recommendation}
+
             Базовое резюме системы:
             $fallbackSummary
 
@@ -100,6 +118,7 @@ class AiResultInterpretationService(
             - формулируй как профессиональную интерпретацию поведения в рамках теста;
             - обязательно укажи конкретные поведенческие склонности, например: "кандидат склонен выбирать решения без анализа изменений среды";
             - объясняй вывод через данные: слабые ответы, положительные ответы, вариативность, достоверность;
+            - riskProfile должен прямо содержать уровень риска и причины;
             - текст должен быть на русском языке;
             - максимум 5 коротких предложений в summary;
             - behavior должен быть одним конкретным поведенческим выводом.
@@ -108,6 +127,7 @@ class AiResultInterpretationService(
             {
               "summary": "краткое объяснение результата",
               "behavior": "конкретная поведенческая склонность кандидата",
+              "riskProfile": "уровень риска и причины",
               "risks": ["риск 1", "риск 2"],
               "recommendations": ["рекомендация 1", "рекомендация 2"]
             }
