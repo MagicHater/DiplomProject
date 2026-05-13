@@ -3,6 +3,7 @@ package com.example.adaptivetestingbackend.controller.controller
 import com.example.adaptivetestingbackend.dto.controller.ControllerDashboardResponse
 import com.example.adaptivetestingbackend.dto.controller.ControllerParticipantListItemResponse
 import com.example.adaptivetestingbackend.dto.controller.ControllerParticipantResultsResponse
+import com.example.adaptivetestingbackend.dto.controller.ControllerSessionAnswerResponse
 import com.example.adaptivetestingbackend.dto.testsession.ResultProfileResponse
 import com.example.adaptivetestingbackend.service.testsession.ControllerResultsService
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -60,5 +61,13 @@ class ControllerResultsController(
         @AuthenticationPrincipal userDetails: UserDetails,
     ): ResultProfileResponse {
         return controllerResultsService.getResultDetails(sessionId, userDetails.username)
+    }
+
+    @GetMapping("/results/{sessionId}/answers")
+    fun getResultAnswers(
+        @PathVariable sessionId: UUID,
+        @AuthenticationPrincipal userDetails: UserDetails,
+    ): List<ControllerSessionAnswerResponse> {
+        return controllerResultsService.getSessionAnswers(sessionId, userDetails.username)
     }
 }
