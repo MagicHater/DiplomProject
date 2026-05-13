@@ -1,6 +1,7 @@
 package com.example.adaptivetestingbackend.dto.controller
 
 import com.example.adaptivetestingbackend.dto.testsession.MyResultListItemResponse
+import java.math.BigDecimal
 import java.time.OffsetDateTime
 
 data class ControllerParticipantListItemResponse(
@@ -19,6 +20,15 @@ data class ControllerParticipantResultsResponse(
     val email: String? = null,
     val sessions: List<MyResultListItemResponse>,
     val statistics: ControllerParticipantStatisticsResponse? = null,
+)
+
+data class ControllerSessionAnswerResponse(
+    val questionOrder: Int,
+    val questionText: String,
+    val selectedAnswerText: String,
+    val answerValue: BigDecimal?,
+    val responseTimeMs: Long?,
+    val difficulty: Int,
 )
 
 data class ControllerParticipantStatisticsResponse(
