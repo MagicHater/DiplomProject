@@ -78,6 +78,8 @@ import com.example.diplomproject.domain.model.TestQuestionOption
 import com.example.diplomproject.domain.model.TokenPreview
 import com.example.diplomproject.domain.model.TokenSessionStartResult
 import com.example.diplomproject.domain.repository.TestSessionRepository
+import com.example.diplomproject.data.remote.ControllerSessionAnswerResponseDto
+import com.example.diplomproject.domain.model.ControllerSessionAnswer
 import javax.inject.Inject
 import retrofit2.HttpException
 import javax.inject.Singleton
@@ -161,6 +163,11 @@ class TestSessionRepositoryImpl @Inject constructor(
         participantType = participantType,
         participantKey = participantKey,
     ).toDomain()
+
+    override suspend fun getControllerSessionAnswers(
+        sessionId: String,
+    ): List<ControllerSessionAnswer> =
+        appApi.getControllerSessionAnswers(sessionId).map { it.toDomain() }
 
     override suspend fun getNextQuestion(sessionId: String): NextQuestionPayload {
         val guestSessionKey = sessionManager.getGuestSessionKey()
@@ -443,6 +450,16 @@ private fun CustomTestQuestionStatisticsDto.toDomain(): CustomTestQuestionStatis
     questionText = questionText,
     options = options.map { it.toDomain() },
 )
+
+private fun ControllerSessionAnswerResponseDto.toDomain(): ControllerSessionAnswer =
+    ControllerSessionAnswer(
+        questionOrder = questionOrder,
+        questionText = questionText,
+        selectedAnswerText = selectedAnswerText,
+        answerValue = answerValue,
+        responseTimeMs = responseTimeMs,
+        difficulty = difficulty,
+    )
 
 private fun CustomTestOptionStatisticsDto.toDomain(): CustomTestOptionStatistics = CustomTestOptionStatistics(
     optionId = optionId,
