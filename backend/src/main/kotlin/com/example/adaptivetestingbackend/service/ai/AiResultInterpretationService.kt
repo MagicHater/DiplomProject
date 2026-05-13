@@ -43,7 +43,7 @@ class AiResultInterpretationService(
             val aiText = buildString {
                 if (summary.isNotBlank()) appendLine(summary)
                 if (behavior.isNotBlank()) appendLine("\nПоведенческий вывод: $behavior")
-                if (riskProfile.isNotBlank()) appendLine("\nРиск профиля: $riskProfile") else appendLine("\n${riskAssessment.toSummaryBlock()}")
+                if (riskProfile.isNotBlank()) appendLine("\nРиски сессии: $riskProfile") else appendLine("\n${riskAssessment.toSummaryBlock()}")
                 if (risks.isNotEmpty()) appendLine("\nРиски: ${risks.joinToString("; ")}")
                 if (recommendations.isNotEmpty()) appendLine("\nРекомендации: ${recommendations.joinToString("; ")}")
             }.trim()
@@ -84,7 +84,7 @@ class AiResultInterpretationService(
 
         return """
             Ты анализируешь результат адаптивного психологического/поведенческого теста кандидата.
-            Нужно дать краткое профессиональное объяснение поведения кандидата по итогам ответов и описать риск профиля.
+            Нужно дать краткое профессиональное объяснение поведения кандидата по итогам ответов и описать риски конкретной сессии.
 
             Категория теста: $categoryName
 
@@ -118,7 +118,7 @@ class AiResultInterpretationService(
             - формулируй как профессиональную интерпретацию поведения в рамках теста;
             - обязательно укажи конкретные поведенческие склонности, например: "кандидат склонен выбирать решения без анализа изменений среды";
             - объясняй вывод через данные: слабые ответы, положительные ответы, вариативность, достоверность;
-            - riskProfile должен прямо содержать уровень риска и причины;
+            - riskProfile должен содержать риски конкретной сессии и причины;
             - текст должен быть на русском языке;
             - максимум 5 коротких предложений в summary;
             - behavior должен быть одним конкретным поведенческим выводом.
