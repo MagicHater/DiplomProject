@@ -44,12 +44,23 @@ class ResultCalculationService(
         val reliability = analyzeReliability(answers)
 
         val normalizedScores = scales.associateWith { scale ->
+            val baseNormalized = normalize(
+                rawScore = rawScores.getValue(scale),
+                minScore = minScores.getValue(scale),
+                maxScore = maxScores.getValue(scale),
+            )
+
+            val normalized = if (scale == DECISION_SPEED_ACCURACY_SCALE) {
+                combineDecisionQualityWithResponseTime(
+                    decisionQualityScore = baseNormalized,
+                    responseTimeScore = calculateDecisionTimeScore(answers),
+                )
+            } else {
+                baseNormalized
+            }
+
             applyReliabilityDamping(
-                normalized = normalize(
-                    rawScore = rawScores.getValue(scale),
-                    minScore = minScores.getValue(scale),
-                    maxScore = maxScores.getValue(scale),
-                ),
+                normalized = normalized,
                 reliabilityFactor = reliability.factor,
             )
         }
@@ -61,7 +72,7 @@ class ResultCalculationService(
             stressResistance = normalizedScores.getValue("stress_resistance"),
             responsibility = normalizedScores.getValue("responsibility"),
             adaptability = normalizedScores.getValue("adaptability"),
-            decisionSpeedAccuracy = normalizedScores.getValue("decision_speed_accuracy"),
+            decisionSpeedAccuracy = normalizedScores.getValue(DECISION_SPEED_ACCURACY_SCALE),
             reliabilityFactor = reliability.factor,
             reliabilityFlags = reliability.flags,
             scaleExplanations = explanations,
@@ -90,6 +101,39 @@ class ResultCalculationService(
             .setScale(2, RoundingMode.HALF_UP)
     }
 
+    private fun combineDecisionQualityWithResponseTime(
+        decisionQualityScore: BigDecimal,
+        responseTimeScore: BigDecimal,
+    ): BigDecimal {
+        return decisionQualityScore.multiply(DECISION_QUALITY_WEIGHT)
+            .add(responseTimeScore.multiply(DECISION_TIME_WEIGHT))
+            .coerceIn(BigDecimal.ZERO, HUNDRED)
+            .setScale(2, RoundingMode.HALF_UP)
+    }
+
+    private fun calculateDecisionTimeScore(answers: List<AnswerEntity>): BigDecimal {
+        val responseTimes = answers.mapNotNull { it.responseTimeMs }.filter { it > 0 }
+
+        if (responseTimes.size < MIN_TIMED_ANSWERS_FOR_ANALYSIS) {
+            return NEUTRAL_SCORE
+        }
+
+        val scores = responseTimes.map { responseTimeMs ->
+            when {
+                responseTimeMs < VERY_FAST_RESPONSE_MS -> BigDecimal("20")
+                responseTimeMs < FAST_BUT_ACCEPTABLE_RESPONSE_MS -> BigDecimal("55")
+                responseTimeMs <= OPTIMAL_RESPONSE_TIME_MAX_MS -> BigDecimal("100")
+                responseTimeMs <= SLOW_RESPONSE_MS -> BigDecimal("75")
+                else -> BigDecimal("45")
+            }
+        }
+
+        return scores
+            .reduce(BigDecimal::add)
+            .divide(scores.size.toBigDecimal(), 2, RoundingMode.HALF_UP)
+            .coerceIn(BigDecimal.ZERO, HUNDRED)
+    }
+
     private fun buildScaleExplanations(
         normalizedScores: Map<String, BigDecimal>,
         scaleContributions: Map<String, List<BigDecimal>>,
@@ -115,7 +159,13 @@ class ResultCalculationService(
                     else -> "средний показатель сформирован смешанным профилем ответов: положительных — $highCount, отрицательных — $lowCount, нейтральных — $neutralCount"
                 }
 
-                "$dominantReason; $variabilityText."
+                val decisionTimeExplanation = if (scale == DECISION_SPEED_ACCURACY_SCALE) {
+                    " Показатель дополнительно учитывает временную адекватность ответов: 70% оценки формируется качеством выбранных решений, 30% — временем реакции."
+                } else {
+                    ""
+                }
+
+                "$dominantReason; $variabilityText.$decisionTimeExplanation"
             }
         }
     }
@@ -226,13 +276,21 @@ class ResultCalculationService(
     )
 
     private companion object {
+        const val DECISION_SPEED_ACCURACY_SCALE: String = "decision_speed_accuracy"
+
         val MIN_ANSWER_VALUE: BigDecimal = BigDecimal("-2")
         val MAX_ANSWER_VALUE: BigDecimal = BigDecimal("2")
         val HUNDRED: BigDecimal = BigDecimal("100")
         val NEUTRAL_SCORE: BigDecimal = BigDecimal("50.00")
+        val DECISION_QUALITY_WEIGHT: BigDecimal = BigDecimal("0.70")
+        val DECISION_TIME_WEIGHT: BigDecimal = BigDecimal("0.30")
+
         const val MIN_ANSWERS_FOR_FULL_CONFIDENCE: Int = 3
         const val MIN_TIMED_ANSWERS_FOR_ANALYSIS: Int = 3
-        const val FAST_RESPONSE_MS: Long = 1200
+        const val VERY_FAST_RESPONSE_MS: Long = 1200
+        const val FAST_RESPONSE_MS: Long = VERY_FAST_RESPONSE_MS
+        const val FAST_BUT_ACCEPTABLE_RESPONSE_MS: Long = 4000
+        const val OPTIMAL_RESPONSE_TIME_MAX_MS: Long = 20000
         const val SLOW_RESPONSE_MS: Long = 45000
     }
 }
