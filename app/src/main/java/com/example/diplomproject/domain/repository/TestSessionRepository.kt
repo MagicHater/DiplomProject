@@ -1,10 +1,11 @@
 package com.example.diplomproject.domain.repository
 
 import com.example.diplomproject.domain.model.CandidateResultHistoryItem
-import com.example.diplomproject.domain.model.ControllerTestDraft
-import com.example.diplomproject.domain.model.ControllerTokenItem
 import com.example.diplomproject.domain.model.ControllerParticipantListItem
 import com.example.diplomproject.domain.model.ControllerParticipantResults
+import com.example.diplomproject.domain.model.ControllerSessionAnswer
+import com.example.diplomproject.domain.model.ControllerTestDraft
+import com.example.diplomproject.domain.model.ControllerTokenItem
 import com.example.diplomproject.domain.model.ControllerTokenResultHistoryItem
 import com.example.diplomproject.domain.model.CustomTestDetails
 import com.example.diplomproject.domain.model.CustomTestDraft
@@ -16,8 +17,8 @@ import com.example.diplomproject.domain.model.FinishedSessionResult
 import com.example.diplomproject.domain.model.NextQuestionPayload
 import com.example.diplomproject.domain.model.SubmitAnswerResult
 import com.example.diplomproject.domain.model.TestCategory
-import com.example.diplomproject.domain.model.TokenSessionStartResult
 import com.example.diplomproject.domain.model.TokenPreview
+import com.example.diplomproject.domain.model.TokenSessionStartResult
 
 interface TestSessionRepository {
     suspend fun getCategories(): List<TestCategory>
@@ -31,6 +32,7 @@ interface TestSessionRepository {
     suspend fun getControllerTokenResults(): List<ControllerTokenResultHistoryItem>
     suspend fun getControllerParticipants(): List<ControllerParticipantListItem>
     suspend fun getControllerParticipantResults(participantType: String, participantKey: String): ControllerParticipantResults
+    suspend fun getControllerSessionAnswers(sessionId: String): List<ControllerSessionAnswer>
     suspend fun getAvailableCustomTests(): List<CustomTestListItem>
     suspend fun createCustomTest(draft: CustomTestDraft): String
     suspend fun getMyCustomTests(): List<CustomTestListItem>
