@@ -33,14 +33,10 @@ interface AppApi {
     suspend fun getControllerCategories(): List<TestCategoryDto>
 
     @POST("token-management/tokens")
-    suspend fun createControllerToken(
-        @Body request: ControllerTokenRequestDto
-    ): ControllerTokenResponseDto
+    suspend fun createControllerToken(@Body request: ControllerTokenRequestDto): ControllerTokenResponseDto
 
     @POST("token-management/tests")
-    suspend fun createControllerTest(
-        @Body request: CreateControllerTestRequestDto
-    ): CreateControllerTestResponseDto
+    suspend fun createControllerTest(@Body request: CreateControllerTestRequestDto): CreateControllerTestResponseDto
 
     @GET("token-management/tokens")
     suspend fun getControllerTokens(): List<ControllerTokenResponseDto>
@@ -64,10 +60,7 @@ interface AppApi {
     suspend fun getCustomTestDetails(@Path("testId") testId: String): CustomTestDetailsDto
 
     @POST("custom-tests/{testId}/submissions")
-    suspend fun submitCustomTest(
-        @Path("testId") testId: String,
-        @Body request: CustomTestSubmissionRequestDto,
-    )
+    suspend fun submitCustomTest(@Path("testId") testId: String, @Body request: CustomTestSubmissionRequestDto)
 
     @GET("custom-tests/{testId}/results")
     suspend fun getCustomTestResults(@Path("testId") testId: String): List<CustomTestResultItemDto>
@@ -79,23 +72,16 @@ interface AppApi {
     suspend fun getControllerParticipants(): List<ControllerParticipantListItemResponseDto>
 
     @GET("controller/candidates/results")
-    suspend fun getControllerParticipantResults(
-        @Query("participantType") participantType: String,
-        @Query("participantKey") participantKey: String,
-    ): ControllerParticipantResultsResponseDto
+    suspend fun getControllerParticipantResults(@Query("participantType") participantType: String, @Query("participantKey") participantKey: String): ControllerParticipantResultsResponseDto
+
+    @GET("controller/results/{sessionId}/answers")
+    suspend fun getControllerSessionAnswers(@Path("sessionId") sessionId: String): List<ControllerSessionAnswerResponseDto>
 
     @GET("test-sessions/{sessionId}/next-question")
-    suspend fun getNextQuestion(
-        @Path("sessionId") sessionId: String,
-        @Header("X-Guest-Session-Key") guestSessionKey: String? = null,
-    ): NextQuestionResponseDto
+    suspend fun getNextQuestion(@Path("sessionId") sessionId: String, @Header("X-Guest-Session-Key") guestSessionKey: String? = null): NextQuestionResponseDto
 
     @POST("test-sessions/{sessionId}/answers")
-    suspend fun submitAnswer(
-        @Path("sessionId") sessionId: String,
-        @Header("X-Guest-Session-Key") guestSessionKey: String? = null,
-        @Body request: SubmitAnswerRequestDto,
-    ): SubmitAnswerResponseDto
+    suspend fun submitAnswer(@Path("sessionId") sessionId: String, @Header("X-Guest-Session-Key") guestSessionKey: String? = null, @Body request: SubmitAnswerRequestDto): SubmitAnswerResponseDto
 
     @GET("me/results")
     suspend fun getMyResults(): List<MyResultListItemResponseDto>
@@ -104,8 +90,5 @@ interface AppApi {
     suspend fun getResult(@Path("sessionId") sessionId: String): FinishSessionResponseDto
 
     @POST("test-sessions/{sessionId}/finish")
-    suspend fun finishSession(
-        @Path("sessionId") sessionId: String,
-        @Header("X-Guest-Session-Key") guestSessionKey: String? = null,
-    ): FinishSessionResponseDto
+    suspend fun finishSession(@Path("sessionId") sessionId: String, @Header("X-Guest-Session-Key") guestSessionKey: String? = null): FinishSessionResponseDto
 }
