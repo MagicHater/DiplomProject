@@ -792,6 +792,7 @@ fun CandidateListScreen(
 fun CandidateDetailsScreen(
     uiState: CandidateDetailsUiState,
     onMetricSelected: (CandidateMetric) -> Unit,
+    onAnswerHistoryClick: (String) -> Unit,
     onBackToCandidateListClick: () -> Unit,
 ) {
     AppScreenScaffold(title = "Карточка кандидата", onBackClick = onBackToCandidateListClick) { innerPadding ->
@@ -874,8 +875,16 @@ fun CandidateDetailsScreen(
                         ) {
                             Text(session.completedAt.formatIsoDateTime(), style = MaterialTheme.typography.labelMedium)
                             Text(session.summary, style = MaterialTheme.typography.titleMedium)
+
                             compactScoreItems(session.scores).forEach { (title, value) ->
                                 CompactScoreRow(title = title, value = value)
+                            }
+
+                            OutlinedButton(
+                                onClick = { onAnswerHistoryClick(session.sessionId) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("История ответов")
                             }
                         }
                     }
